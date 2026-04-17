@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMS — Battery Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#05060f;--ink2:#0d0f1f;--ink3:#141628;
+  --blue:#2563eb;--blue2:#1428a0;--blue3:#3b82f6;--blue4:#60a5fa;
+  --blueglow:rgba(37,99,235,.18);
+  --cyan:#06b6d4;
+  --w:#fff;--w90:rgba(255,255,255,.9);--w60:rgba(255,255,255,.6);
+  --w30:rgba(255,255,255,.3);--w10:rgba(255,255,255,.1);--w06:rgba(255,255,255,.06);
+  --brd:rgba(255,255,255,.09);--brd2:rgba(255,255,255,.18);
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--w);font-family:'Space Grotesk','Noto Sans KR',sans-serif;overflow-x:hidden}
+body.light{
+  --ink:#f5f7ff;--ink2:#eaedff;--ink3:#dde2ff;
+  --w:rgba(8,10,30,.95);--w90:rgba(8,10,30,.9);--w60:rgba(8,10,30,.6);
+  --w30:rgba(8,10,30,.35);--w10:rgba(8,10,30,.07);--w06:rgba(8,10,30,.04);
+  --brd:rgba(8,10,30,.1);--brd2:rgba(8,10,30,.18);
+}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--blue);border-radius:2px}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:300;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;transition:background .3s,box-shadow .3s}
+nav.solid{background:rgba(5,6,15,.92);backdrop-filter:blur(20px);box-shadow:0 1px 0 var(--brd)}
+body.light nav.solid{background:rgba(245,247,255,.94)}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--blue3),var(--cyan));border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px}
+.nav-name{font-size:15px;font-weight:700;color:var(--w);letter-spacing:-.3px}
+.nav-right{display:flex;align-items:center;gap:20px}
+.navl{font-size:12px;font-weight:500;color:var(--w60);letter-spacing:.05em;cursor:pointer;transition:color .2s;text-transform:uppercase;border:none;background:transparent;font-family:inherit}
+.navl:hover{color:var(--w)}
+.search-box{position:relative;display:flex;align-items:center;gap:0}
+.search-inp{width:0;opacity:0;background:var(--w06);border:1px solid var(--brd);color:var(--w);padding:6px 32px 6px 12px;border-radius:18px;font-size:12px;outline:none;transition:width .3s,opacity .3s;font-family:inherit}
+.search-inp.open{width:170px;opacity:1}
+.search-inp:focus{border-color:rgba(59,130,246,.4)}
+.search-inp::placeholder{color:var(--w30)}
+.search-ico{position:absolute;right:8px;background:transparent;border:none;color:var(--w60);cursor:pointer;font-size:15px;padding:4px;transition:color .2s;line-height:1}
+.search-ico:hover{color:var(--w)}
+.search-drop{position:absolute;top:calc(100% + 8px);right:0;width:280px;background:var(--ink2);border:1px solid var(--brd2);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);z-index:400;overflow:hidden;display:none}
+.search-drop.open{display:block}
+.sd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--brd);transition:background .15s}
+.sd-item:last-child{border-bottom:none}
+.sd-item:hover{background:var(--w06)}
+.sd-num{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;background:var(--blue);padding:2px 6px;border-radius:3px;flex-shrink:0}
+.sd-t{font-size:12.5px;color:var(--w90)}
+.sd-s{font-size:10.5px;color:var(--w30)}
+.theme-btn{background:var(--w06);border:1px solid var(--brd);color:var(--w60);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.theme-btn:hover{background:var(--w10)}
+.nav-pill{background:var(--blue);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;transition:all .2s}
+.nav-pill:hover{background:var(--blue2);box-shadow:0 0 20px var(--blueglow)}
+
+/* MESH BG */
+.mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.2;animation:bdrift 18s ease-in-out infinite}
+.b1{width:700px;height:700px;background:radial-gradient(circle,#1428a0,transparent);top:-200px;left:-200px}
+.b2{width:600px;height:600px;background:radial-gradient(circle,#0891b2,transparent);bottom:-100px;right:-100px;animation-delay:-6s}
+.b3{width:400px;height:400px;background:radial-gradient(circle,#7c3aed,transparent);top:40%;left:40%;animation-delay:-12s}
+@keyframes bdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-40px) scale(1.08)}66%{transform:translate(-40px,60px) scale(.94)}}
+body.light .blob{opacity:.07}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;z-index:10;padding-top:60px}
+.hero-inner{padding:0 48px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+.hero-left{max-width:560px;flex-shrink:0}
+.h-kicker{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:24px;border:1px solid var(--brd2);background:var(--w06);margin-bottom:24px}
+.h-kicker-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:kp 2s ease-in-out infinite}
+@keyframes kp{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+.h-kicker-txt{font-size:11px;font-weight:600;color:var(--w60);letter-spacing:.1em;text-transform:uppercase}
+.h1{font-size:clamp(52px,7vw,96px);font-weight:800;line-height:1.0;letter-spacing:-.04em;margin-bottom:18px}
+.h1 .l1{display:block;color:var(--w)}
+.h1 .l2{display:block;background:linear-gradient(90deg,var(--blue3),var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.h-desc{font-size:16px;font-weight:300;color:var(--w60);line-height:1.75;margin-bottom:36px}
+.h-btns{display:flex;gap:12px;flex-wrap:wrap}
+.hbtn{display:inline-flex;align-items:center;gap:7px;padding:13px 26px;border-radius:28px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:all .25s;font-family:inherit}
+.hbtn-fill{background:var(--blue);color:#fff;box-shadow:0 8px 24px var(--blueglow)}
+.hbtn-fill:hover{background:var(--blue2);box-shadow:0 14px 44px rgba(37,99,235,.38);transform:translateY(-2px)}
+.hbtn-ol{background:transparent;color:var(--w);border:1px solid var(--brd2)}
+.hbtn-ol:hover{background:var(--w06)}
+
+/* 3D 배터리 */
+.hero-right{flex-shrink:0;width:440px;height:480px;position:relative}
+.scene{width:100%;height:100%;perspective:900px}
+.bat3d{width:300px;height:200px;position:absolute;top:50%;left:50%;transform-style:preserve-3d;transform:translate(-50%,-50%) rotateX(22deg) rotateY(-28deg);animation:b3spin 12s ease-in-out infinite}
+@keyframes b3spin{0%,100%{transform:translate(-50%,-50%) rotateX(22deg) rotateY(-28deg) translateY(0)}25%{transform:translate(-50%,-50%) rotateX(18deg) rotateY(-18deg) translateY(-14px)}50%{transform:translate(-50%,-50%) rotateX(24deg) rotateY(-32deg) translateY(-8px)}75%{transform:translate(-50%,-50%) rotateX(16deg) rotateY(-22deg) translateY(-16px)}}
+.face{position:absolute;border-radius:12px;backface-visibility:visible}
+.f-front{width:300px;height:200px;background:linear-gradient(145deg,#1e40af,#1d4ed8,#1e3a8a);transform:translateZ(22px);border:1px solid rgba(147,197,253,.3);box-shadow:0 0 60px rgba(37,99,235,.2),inset 0 1px 0 rgba(255,255,255,.15)}
+.f-back{width:300px;height:200px;background:linear-gradient(145deg,#0d1d5c,#0f1f7a);transform:translateZ(-22px) rotateY(180deg);border:1px solid rgba(80,120,220,.12)}
+.f-top{width:300px;height:44px;background:linear-gradient(90deg,#1e40af,#2563eb);transform:rotateX(90deg) translateZ(22px);top:0;border:1px solid rgba(147,197,253,.25)}
+.f-bot{width:300px;height:44px;background:linear-gradient(90deg,#0d1a6c,#0e1e80);transform:rotateX(-90deg) translateZ(178px);bottom:0;border:1px solid rgba(80,110,200,.15)}
+.f-left{width:44px;height:200px;background:linear-gradient(180deg,#1e40af,#1d4ed8);transform:rotateY(-90deg) translateZ(22px);left:0;border:1px solid rgba(147,197,253,.2)}
+.f-right{width:44px;height:200px;background:linear-gradient(180deg,#1e40af,#1d4ed8);transform:rotateY(90deg) translateZ(278px);right:0;border:1px solid rgba(147,197,253,.2)}
+.cells{position:absolute;inset:14px;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr);gap:5px;transform:translateZ(23px)}
+.cell{border-radius:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);transition:all .5s}
+.cell.on{background:rgba(96,205,255,.28);border-color:rgba(96,205,255,.6);box-shadow:0 0 8px rgba(96,205,255,.25)}
+.cell.pulse{animation:cpulse 1s ease-in-out infinite}
+@keyframes cpulse{0%,100%{background:rgba(96,205,255,.14);border-color:rgba(96,205,255,.3)}50%{background:rgba(96,205,255,.45);border-color:rgba(96,205,255,.8);box-shadow:0 0 12px rgba(96,205,255,.5)}}
+.bat-lbl{position:absolute;bottom:10px;right:14px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.14em;transform:translateZ(24px);text-shadow:0 0 8px rgba(147,197,253,.7)}
+.bat-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:300px;background:radial-gradient(ellipse,rgba(37,99,235,.1),transparent 70%);border-radius:50%;pointer-events:none;animation:bglow 4s ease-in-out infinite}
+@keyframes bglow{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+
+/* UI 플로팅 카드 */
+.ui-card{position:absolute;background:rgba(8,12,32,.9);border:1px solid rgba(147,197,253,.28);border-radius:14px;padding:12px 16px;backdrop-filter:blur(20px);white-space:nowrap;box-shadow:0 16px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06)}
+.uc1{top:6%;right:-14%;animation:cfloat 6s ease-in-out infinite}
+.uc2{bottom:12%;left:-16%;animation:cfloat 7s ease-in-out infinite reverse}
+.uc3{bottom:36%;right:-20%;animation:cfloat 5.5s ease-in-out infinite 1s}
+@keyframes cfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.uc-lbl{font-size:9px;font-weight:600;color:rgba(147,197,253,.8);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.uc-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;line-height:1}
+.uc-sub{font-size:9px;color:rgba(255,255,255,.45);margin-top:3px}
+.uc-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:8px;overflow:hidden}
+.uc-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--blue3),var(--cyan));animation:barf 4s ease-in-out infinite}
+@keyframes barf{0%{width:28%}50%{width:76%}100%{width:28%}}
+
+/* SOC 파형 */
+.wave-cv{position:absolute;bottom:0;left:0;width:100%;height:100px;pointer-events:none;z-index:1;opacity:.28}
+
+/* 스크롤 힌트 */
+.scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:10;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sh-txt{font-size:10px;font-weight:500;color:var(--w30);letter-spacing:.12em;text-transform:uppercase}
+.sh-mouse{width:20px;height:32px;border:1.5px solid rgba(255,255,255,.2);border-radius:10px;position:relative;margin:0 auto}
+.sh-mouse::before{content:'';position:absolute;top:5px;left:50%;transform:translateX(-50%);width:2.5px;height:6px;background:var(--blue4);border-radius:2px;animation:smd 1.8s ease-in-out infinite}
+@keyframes smd{0%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:0;transform:translateX(-50%) translateY(12px)}100%{opacity:0}}
+
+/* STATS BAND */
+.stats-band{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--brd);margin:0 48px;border:1px solid var(--brd);border-radius:18px;overflow:hidden;position:relative;z-index:10}
+.sc{background:var(--ink2);padding:28px 20px;text-align:center;transition:background .2s}
+.sc:hover{background:var(--ink3)}
+.sc-n{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;letter-spacing:-.04em;background:linear-gradient(135deg,var(--w),var(--blue4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.sc-l{font-size:11px;font-weight:500;color:var(--w30);text-transform:uppercase;letter-spacing:.1em;margin-top:5px}
+
+/* TICKER */
+.ticker{background:rgba(255,255,255,.02);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);padding:11px 0;overflow:hidden;position:relative;z-index:10;margin-top:24px}
+.ticker-inner{display:flex;gap:60px;animation:tk 35s linear infinite;width:max-content}
+.ticker:hover .ticker-inner{animation-play-state:paused}
+.ti{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.ti-chip{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.08em}
+.tc-b{background:rgba(37,99,235,.2);color:var(--blue4);border:1px solid rgba(37,99,235,.3)}
+.tc-c{background:rgba(6,182,212,.13);color:var(--cyan);border:1px solid rgba(6,182,212,.22)}
+.tc-g{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.22)}
+.ti-t{font-size:12px;color:var(--w60)}
+@keyframes tk{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* SECTIONS */
+.sec{padding:88px 48px;position:relative;z-index:10}
+.sec-alt{background:rgba(255,255,255,.015)}
+.sec-dark{background:rgba(0,0,0,.2)}
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .75s ease,transform .75s ease}
+.reveal.show{opacity:1;transform:translateY(0)}
+.rd1{transition-delay:.08s}.rd2{transition-delay:.16s}.rd3{transition-delay:.24s}
+.sec-ey{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:var(--blue4);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-ey::before{content:'';width:18px;height:2px;background:var(--blue4);border-radius:1px}
+.sec-h{font-size:clamp(28px,4vw,48px);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:12px;color:var(--w)}
+.sec-h em{background:linear-gradient(90deg,var(--blue4),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-style:normal}
+.sec-p{font-size:15px;font-weight:300;color:var(--w60);line-height:1.75;max-width:500px;margin-bottom:36px}
+.dark-sec .sec-h{color:var(--w)}
+
+/* USE CASE 섹션 */
+.uc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:16px;margin-top:44px}
+@media(max-width:900px){.uc-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){.uc-grid{grid-template-columns:1fr}}
+.uc-card{position:relative;border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .4s cubic-bezier(.23,1,.32,1),box-shadow .4s}
+.uc-card:hover{transform:translateY(-7px);box-shadow:0 32px 72px rgba(0,0,0,.55)}
+.uc-card img{width:100%;height:260px;object-fit:cover;display:block;transition:transform .6s,filter .4s;filter:brightness(.6) saturate(1.2)}
+.uc-card:hover img{transform:scale(1.07);filter:brightness(.75) saturate(1.3)}
+.uc-card.big img{height:100%;min-height:536px}
+.uc-card.big{grid-row:span 2}
+.uc-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(5,6,15,.95) 0%,rgba(5,6,15,.3) 55%,transparent 100%)}
+.uc-cont{position:absolute;bottom:0;left:0;right:0;padding:22px}
+.uc-chip{display:inline-block;background:var(--blue);color:#fff;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.1em;margin-bottom:9px}
+.uc-t{font-size:18px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:5px;letter-spacing:-.02em}
+.uc-d{font-size:12.5px;color:rgba(255,255,255,.58);line-height:1.6}
+.uc-s{margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);font-weight:600}
+
+/* FUTURE BAND */
+.future-band{padding:72px 48px;text-align:center;position:relative;z-index:10}
+.future-band::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(37,99,235,.08),transparent 70%);pointer-events:none}
+.fb-ey{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--cyan);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px}
+.fb-h{font-size:clamp(28px,5vw,62px);font-weight:800;letter-spacing:-.04em;line-height:1.05;color:var(--w);margin-bottom:18px}
+.fb-h .g{background:linear-gradient(90deg,var(--blue4),var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.fb-p{font-size:16px;color:var(--w60);font-weight:300;max-width:620px;margin:0 auto;line-height:1.75}
+.fb-tags{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:30px}
+.fb-tag{padding:7px 18px;border-radius:24px;font-size:12px;font-weight:500;border:1px solid var(--brd2);color:var(--w60);background:var(--w06);transition:all .2s;letter-spacing:.03em}
+.fb-tag:hover{border-color:var(--blue4);color:var(--blue4);background:rgba(37,99,235,.06);cursor:default}
+
+/* NEWS */
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.nc{background:var(--ink2);border:1px solid var(--brd);border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(.23,1,.32,1),border-color .25s,box-shadow .3s}
+.nc:hover{transform:translateY(-5px);border-color:rgba(37,99,235,.3);box-shadow:0 20px 56px rgba(0,0,0,.45)}
+.nc-img{height:160px;overflow:hidden;background:var(--ink3);position:relative}
+.nc-img img{width:100%;height:100%;object-fit:cover;opacity:.68;transition:opacity .4s,transform .5s;display:block}
+.nc:hover .nc-img img{opacity:.88;transform:scale(1.06)}
+.nc-ov{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(5,6,15,.8) 100%)}
+.nc-body{padding:13px 16px 16px}
+.nc-src{display:inline-block;background:rgba(37,99,235,.15);color:var(--blue4);font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:2px 7px;border-radius:4px;letter-spacing:.08em;font-weight:700;margin-bottom:7px;border:1px solid rgba(37,99,235,.22)}
+.nc-ttl{font-size:13.5px;font-weight:600;color:var(--w90);line-height:1.45;margin-bottom:7px}
+.nc-sum{font-size:12px;color:var(--w60);line-height:1.7;padding-top:7px;border-top:1px solid var(--brd)}
+.nc-date{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--w30);display:block;margin-top:4px}
+.nc-link{display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;color:var(--blue4);font-weight:500;text-decoration:none}
+.nc-link svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* SBOX */
+.sbox{background:var(--ink2);border:1px solid var(--brd);border-radius:20px;padding:26px 30px;position:relative;overflow:hidden}
+.sbox::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(37,99,235,.07),transparent 70%);pointer-events:none}
+.sbox-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.sbox-ey{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
+.ey-b{color:var(--blue4)}.ey-c{color:var(--cyan)}.ey-a{color:var(--amber)}
+.sbox-t{font-size:19px;font-weight:700;color:var(--w);letter-spacing:-.02em}
+.sbox-badge{display:inline-block;margin-top:5px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:500}
+.sb-b{background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.24);color:var(--blue4)}
+.sb-c{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.22);color:var(--cyan)}
+.sb-a{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.22);color:var(--amber)}
+.cache-row{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--w30);margin-top:5px;display:flex;align-items:center;gap:5px}
+.cdot{width:5px;height:5px;border-radius:50%;background:var(--w30);flex-shrink:0}
+.cdot.fresh{background:var(--green);box-shadow:0 0 6px var(--green)}
+.act-btn{display:flex;align-items:center;gap:6px;border:none;padding:10px 20px;font-family:'Space Grotesk','Noto Sans KR',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;border-radius:22px;transition:all .22s;white-space:nowrap;letter-spacing:.04em}
+.act-btn:hover{transform:translateY(-2px)}
+.act-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.act-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+.act-btn.spin svg{animation:spin .7s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.ab-b{background:var(--blue);color:#fff;box-shadow:0 4px 18px var(--blueglow)}
+.ab-b:hover{background:var(--blue2);box-shadow:0 8px 30px var(--blueglow)}
+.ab-c{background:var(--cyan);color:#000}
+.ab-a{background:var(--amber);color:#000}
+
+/* CHAPTERS */
+.ch-rows{display:flex;flex-direction:column;gap:22px}
+.ch-rh{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.ch-rbadge{font-size:10px;font-weight:700;color:#fff;padding:3px 11px;border-radius:20px;font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.rb1{background:var(--blue)}.rb2{background:var(--cyan);color:#000}.rb3{background:#7c3aed}
+.ch-rname{font-size:12.5px;font-weight:500;color:var(--w60)}
+.ch-rline{flex:1;height:1px;background:var(--brd)}
+.ch-rcnt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--w30)}
+.ch-hs{display:flex;gap:12px;overflow-x:auto;padding:3px 2px 13px;-webkit-overflow-scrolling:touch}
+.ch-hs::-webkit-scrollbar{height:3px}
+.ch-hs::-webkit-scrollbar-thumb{background:rgba(37,99,235,.3);border-radius:2px}
+.wg{min-width:192px;width:192px;background:var(--ink2);border:1px solid var(--brd);border-radius:14px;overflow:hidden;cursor:pointer;flex-shrink:0;transition:transform .3s cubic-bezier(.23,1,.32,1),border-color .25s,box-shadow .3s}
+.wg:hover{transform:translateY(-5px) scale(1.02);border-color:rgba(37,99,235,.4);box-shadow:0 18px 52px rgba(0,0,0,.45)}
+.wg.active{border-color:var(--blue3);box-shadow:0 0 0 2px rgba(37,99,235,.28)}
+.wg-img{height:100px;overflow:hidden;background:var(--ink3);position:relative}
+.wg-img img{width:100%;height:100%;object-fit:cover;opacity:.62;transition:opacity .4s,transform .5s;display:block}
+.wg:hover .wg-img img{opacity:.84;transform:scale(1.08)}
+.wg-ov{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(5,6,15,.78) 100%)}
+.wg-n{position:absolute;top:8px;left:8px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;padding:2px 7px;border-radius:4px;letter-spacing:.06em}
+.wg-tag{position:absolute;bottom:7px;right:7px;font-size:9px;color:var(--w60);background:rgba(0,0,0,.5);padding:2px 6px;border-radius:3px;backdrop-filter:blur(6px)}
+.wg-body{padding:11px 12px 13px}
+.wg-t{font-size:12.5px;font-weight:600;color:var(--w90);line-height:1.35;margin-bottom:4px;transition:color .2s}
+.wg:hover .wg-t,.wg.active .wg-t{color:var(--blue4)}
+.wg-i{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--w30);line-height:1.5}
+
+/* 확장 패널 */
+.ch-exp{display:none;background:var(--ink2);border:1px solid var(--blue3);border-radius:16px;overflow:hidden;margin-top:8px;animation:eopen .25s cubic-bezier(.16,1,.3,1)}
+.ch-exp.show{display:block}
+@keyframes eopen{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.exp-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;background:rgba(37,99,235,.06);border-bottom:1px solid var(--brd)}
+.exp-num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fff;background:var(--blue);padding:4px 10px;border-radius:5px;flex-shrink:0}
+.exp-title{font-size:14px;font-weight:700;color:var(--blue4);flex:1}
+.exp-close{background:var(--w06);border:1px solid var(--brd);color:var(--w60);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.exp-close:hover{background:var(--w10);color:var(--w)}
+.exp-body{padding:16px 18px}
+.exp-sum{font-size:13px;line-height:1.8;color:var(--w60);padding:11px 14px;background:rgba(37,99,235,.04);border-left:2px solid var(--blue3);border-radius:0 8px 8px 0;margin-bottom:10px}
+/* 스펙 테이블 */
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:14px}
+.spec-cell{background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.14);border-radius:8px;padding:9px 12px}
+.spec-k{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--blue4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.spec-v{font-size:13px;font-weight:700;color:var(--w90)}
+.exp-btns{display:flex;gap:9px;margin-bottom:11px}
+.exp-btn{display:inline-flex;align-items:center;gap:6px;background:var(--w06);border:1px solid var(--brd2);color:var(--blue4);padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;font-family:inherit}
+.exp-btn:hover{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.35)}
+.exp-btn.gr{color:var(--cyan)}.exp-btn.gr:hover{background:rgba(6,182,212,.08);border-color:rgba(6,182,212,.32)}
+.exp-btn:disabled{opacity:.4;cursor:not-allowed}
+.exp-btn svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2}
+.exp-btn.spin svg{animation:spin .7s linear infinite}
+
+/* DASHBOARD */
+.dash-sec{padding:80px 48px;position:relative;z-index:10;background:var(--ink2)}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:1100px;margin:0 auto}
+@media(max-width:760px){.dash-grid{grid-template-columns:1fr}}
+.dash-card{background:var(--ink);border:1px solid var(--brd);border-radius:18px;padding:22px 26px}
+.dash-card-t{font-size:15px;font-weight:700;color:var(--w);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.dash-card-t::before{content:'';width:4px;height:18px;background:linear-gradient(var(--blue3),var(--cyan));border-radius:2px}
+.dash-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.df{display:flex;flex-direction:column;gap:4px}
+.df-l{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--blue4);letter-spacing:.1em;text-transform:uppercase}
+.df-i{background:var(--ink2);border:1px solid var(--brd2);color:var(--w);padding:8px 11px;border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .2s;width:100%}
+.df-i:focus{border-color:var(--blue3)}
+.dash-run{width:100%;padding:10px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;transition:box-shadow .2s;font-family:inherit;letter-spacing:.04em}
+.dash-run:hover{box-shadow:0 4px 20px var(--blueglow)}
+.gauge-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.g-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--w30);width:62px;text-align:right;flex-shrink:0}
+.g-bg{flex:1;height:10px;background:var(--ink2);border-radius:5px;overflow:hidden;border:1px solid var(--brd)}
+.g-fill{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.34,1.56,.64,1)}
+.gf-soc{background:linear-gradient(90deg,var(--blue3),var(--cyan))}
+.gf-soh{background:linear-gradient(90deg,var(--red),var(--amber),var(--green))}
+.gf-sop{background:linear-gradient(90deg,#7c3aed,var(--purple))}
+.gf-pw{background:linear-gradient(90deg,var(--amber),#f97316)}
+.g-val{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;color:var(--w);width:56px;flex-shrink:0}
+.res-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:11px;display:none}
+.res-cell{background:var(--ink2);border:1px solid var(--brd);border-radius:7px;padding:10px;text-align:center}
+.rv{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700}
+.rv.g{color:var(--green)}.rv.b{color:var(--blue4)}.rv.y{color:var(--amber)}.rv.p{color:var(--purple)}.rv.r{color:var(--red)}
+.rl{font-size:9.5px;color:var(--w30);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+/* 논문 카드 */
+.pc{background:var(--ink2);border:1px solid var(--brd);border-radius:12px;padding:13px 15px;transition:border-color .2s}
+.pc:hover{border-color:rgba(6,182,212,.28)}
+.pc-type{display:inline-block;background:rgba(6,182,212,.1);color:var(--cyan);font-size:9.5px;padding:2px 7px;border-radius:4px;letter-spacing:.08em;font-weight:700;margin-bottom:6px;border:1px solid rgba(6,182,212,.2);text-transform:uppercase}
+.pc-t{font-size:13px;font-weight:600;color:var(--w90);line-height:1.45;margin-bottom:5px}
+.pc-m{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11px;color:var(--w60);margin-bottom:4px}
+.pc-ml{font-size:9px;color:var(--w30);text-transform:uppercase;letter-spacing:.08em}
+.pc-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--cyan);text-decoration:none;font-weight:500;margin-top:4px}
+.pc-link svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2}
+.rc-list{display:flex;flex-direction:column;gap:9px}
+.rc{display:flex;gap:12px;background:var(--ink2);border:1px solid var(--brd);padding:13px 15px;border-radius:11px;transition:border-color .2s}
+.rc:hover{border-color:rgba(245,158,11,.28)}
+.rcn{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);min-width:26px;padding-top:1px;flex-shrink:0}
+.rct{font-size:13px;font-weight:600;color:var(--w90);line-height:1.45;margin-bottom:4px}
+.rcm{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11px;color:var(--w60);margin-bottom:4px}
+.rcml{font-size:9px;color:var(--w30);text-transform:uppercase;letter-spacing:.08em}
+.rc-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--amber);text-decoration:none;font-weight:500}
+.rc-link svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:2}
+.notice{margin-top:10px;padding:9px 13px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);font-size:11.5px;color:var(--w60);line-height:1.6;border-radius:7px}
+.ph{padding:20px;text-align:center;color:var(--w30);font-size:12.5px;border:1px dashed var(--brd);border-radius:10px;font-family:'JetBrains Mono',monospace}
+.err{padding:11px 15px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);color:#fca5a5;font-size:12.5px;border-radius:8px}
+.g2{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
+
+/* FAB */
+.fab{position:fixed;bottom:26px;right:26px;z-index:200;display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;padding:12px 22px;border-radius:28px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 8px 28px var(--blueglow);transition:all .25s;font-family:inherit}
+.fab:hover{box-shadow:0 14px 44px rgba(37,99,235,.5);transform:translateY(-3px)}
+.fab-dot{position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--green);animation:fdot 2s ease-in-out infinite}
+@keyframes fdot{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 7px rgba(16,185,129,0)}}
+.c-ov{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:100;pointer-events:none;transition:background .35s}
+.c-ov.open{background:rgba(0,0,0,.68);pointer-events:all}
+.c-pan{position:fixed;top:0;right:0;bottom:0;z-index:150;width:400px;max-width:96vw;background:var(--ink2);border-left:1px solid var(--brd2);transform:translateX(105%);transition:transform .4s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;box-shadow:-16px 0 60px rgba(0,0,0,.55)}
+.c-pan.open{transform:translateX(0)}
+.c-hd{display:flex;align-items:center;gap:11px;padding:16px 18px;border-bottom:1px solid var(--brd);flex-shrink:0}
+.c-hd-ic{width:34px;height:34px;background:linear-gradient(135deg,var(--blue3),var(--cyan));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.c-hd-t{font-size:14px;font-weight:700;color:var(--w)}.c-hd-s{font-size:11px;color:var(--w30);margin-top:1px}
+.c-cls{margin-left:auto;width:26px;height:26px;background:var(--w06);border:none;border-radius:5px;color:var(--w60);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.c-cls:hover{background:var(--w10);color:var(--w)}
+.c-tabs{display:flex;padding:9px 18px 0;gap:2px;border-bottom:1px solid var(--brd);flex-shrink:0}
+.c-tab{padding:6px 13px;font-size:12px;font-weight:600;color:var(--w30);border:none;background:transparent;cursor:pointer;border-radius:5px 5px 0 0;transition:all .15s;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.04em}
+.c-tab.active{color:var(--blue4);border-bottom-color:var(--blue3);background:rgba(37,99,235,.06)}
+.c-body{flex:1;overflow-y:auto;padding:16px 18px}
+.c-body::-webkit-scrollbar{width:3px}
+.c-body::-webkit-scrollbar-thumb{background:var(--ink3);border-radius:2px}
+.ctc{display:none}.ctc.active{display:block}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px;margin-top:4px}
+.cfd{display:flex;flex-direction:column;gap:4px}
+.clbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;color:var(--blue4);letter-spacing:.12em;text-transform:uppercase}
+.cinp{background:var(--ink3);border:1px solid var(--brd2);color:var(--w);padding:8px 11px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;transition:border-color .2s;width:100%}
+.cinp:focus{border-color:var(--blue3)}
+.cunit{font-size:10px;color:var(--w30);margin-top:2px}
+.crun{width:100%;padding:10px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:7px;transition:box-shadow .2s;font-family:inherit;letter-spacing:.04em}
+.crun:hover{box-shadow:0 4px 20px var(--blueglow)}
+.crg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:11px}
+.crc{background:var(--ink3);border:1px solid var(--brd);border-radius:7px;padding:10px 9px;text-align:center}
+.crv{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700}
+.crv.g{color:var(--green)}.crv.y{color:var(--amber)}.crv.r{color:var(--red)}.crv.b{color:var(--blue4)}.crv.p{color:var(--purple)}
+.crl{font-size:9.5px;color:var(--w30);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.cch{background:var(--ink3);border:1px solid var(--brd);border-radius:7px;padding:9px}
+.cwn{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:7px 11px;font-size:11.5px;color:var(--amber);margin-top:9px;line-height:1.6}
+.sbox2{text-align:center;padding:12px;background:var(--ink3);border-radius:7px;border:1px solid var(--brd);margin-bottom:11px}
+.spct{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:800}
+.sgrd{display:inline-block;margin-top:5px;padding:2px 11px;border-radius:11px;font-size:11px;font-weight:600}
+.sbw{height:9px;background:var(--ink3);border-radius:4px;overflow:hidden;margin:5px 0}
+.sb{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green));transition:width .7s cubic-bezier(.34,1.56,.64,1)}
+.slbs{display:flex;justify-content:space-between;font-size:9.5px;color:var(--w30);margin-bottom:3px}
+footer{background:rgba(0,0,0,.3);border-top:1px solid var(--brd);padding:24px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:relative;z-index:10}
+footer .fl{font-size:12px;color:var(--w30)}.fl span{color:var(--blue4)}
+footer .fr{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--w30)}
+
+/* ── 시뮬레이터 섹션 ── */
+.sim-sec{padding:88px 48px;position:relative;z-index:10;background:var(--ink2)}
+.sim-wrap{max-width:1100px;margin:0 auto}
+
+/* 모드 버튼 */
+.sim-modes{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.sim-mode-btn{padding:10px 24px;border-radius:24px;font-size:13px;font-weight:700;border:1px solid var(--brd2);background:transparent;color:var(--w60);cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.04em}
+.sim-mode-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 4px 18px var(--blueglow)}
+.sim-mode-btn:hover:not(.active){background:var(--w06);color:var(--w)}
+
+/* 컨트롤 패널 */
+.sim-panel{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+@media(max-width:800px){.sim-panel{grid-template-columns:1fr}}
+.sim-controls{background:var(--ink);border:1px solid var(--brd);border-radius:16px;padding:20px}
+.sim-ctrl-title{font-size:12px;font-weight:700;color:var(--w60);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.sim-ctrl-title::before{content:'';width:3px;height:14px;background:var(--blue3);border-radius:2px}
+
+/* 재생 컨트롤 */
+.sim-play-row{display:flex;gap:8px;margin-bottom:18px}
+.sim-play-btn{flex:1;padding:10px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px}
+.spb-play{background:var(--blue);color:#fff}
+.spb-play:hover{background:var(--blue2);box-shadow:0 4px 16px var(--blueglow)}
+.spb-pause{background:var(--w10);color:var(--w);border:1px solid var(--brd2)}
+.spb-pause:hover{background:var(--w10)}
+.spb-reset{background:transparent;color:var(--w60);border:1px solid var(--brd);width:40px;flex:none;border-radius:8px;font-size:16px;padding:0}
+.spb-reset:hover{background:var(--w06);color:var(--w)}
+
+/* 배속 */
+.sim-speed-row{display:flex;gap:5px;margin-bottom:18px}
+.speed-btn{flex:1;padding:6px 4px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid var(--brd);background:transparent;color:var(--w30);cursor:pointer;transition:all .18s;font-family:'JetBrains Mono',monospace}
+.speed-btn.active{background:var(--blue3);color:#fff;border-color:var(--blue3)}
+.speed-btn:hover:not(.active){background:var(--w06);color:var(--w)}
+
+/* 슬라이더 */
+.sim-slider-wrap{margin-bottom:14px}
+.sim-slider-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sim-slider-lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;color:var(--blue4);letter-spacing:.1em;text-transform:uppercase}
+.sim-slider-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--w)}
+input[type=range].sim-slider{width:100%;height:4px;border-radius:2px;background:var(--brd2);outline:none;-webkit-appearance:none;cursor:pointer}
+input[type=range].sim-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--blue3);cursor:pointer;border:2px solid var(--ink);box-shadow:0 0 8px var(--blueglow)}
+
+/* 상태 표시 */
+.sim-status{background:var(--ink3);border-radius:8px;padding:12px;margin-top:14px}
+.sim-status-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sim-status-row:last-child{margin-bottom:0}
+.sim-status-k{font-size:10px;color:var(--w30);font-family:'JetBrains Mono',monospace;letter-spacing:.06em}
+.sim-status-v{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sv-soc{color:var(--blue4)}.sv-v{color:var(--cyan)}.sv-i{color:var(--green)}.sv-t{color:var(--amber)}.sv-soh{color:var(--purple)}
+
+/* 그래프 영역 */
+.sim-graphs{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:480px}
+.sim-graph-card{background:var(--ink);border:1px solid var(--brd);border-radius:12px;padding:12px;position:relative;overflow:hidden}
+.sim-graph-title{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sim-graph-card canvas{width:100%!important;height:calc(100% - 28px)!important}
+
+/* 시간 표시 */
+.sim-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--w30);text-align:center;margin-top:10px}
+.sim-cycle-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.25);color:var(--purple);padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;margin-left:12px}
+
+</style>
+</head>
+<body>
+<div class="mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-brand">
+    <div class="nav-icon">B</div>
+    <div class="nav-name">BMS Platform</div>
+  </div>
+  <div class="nav-right">
+    <button class="navl" onclick="goSec('sec-apps')">Applications</button>
+    <button class="navl" onclick="goSec('sec-news')">News</button>
+    <button class="navl" onclick="goSec('sec-sim')">Simulator</button>
+    <button class="navl" onclick="goSec('sec-ch')">Chapters</button>
+    <button class="navl" onclick="goSec('sec-dash')">Dashboard</button>
+    <div class="search-box" id="searchBox">
+      <input class="search-inp" id="si" type="text" placeholder="챕터 검색..." oninput="doSearch(this.value)">
+      <button class="search-ico" onclick="toggleSearch()">🔍</button>
+      <div class="search-drop" id="sd"></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    <button class="nav-pill" onclick="openCalc()">⚡ 계산기</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas class="wave-cv" id="waveCV"></canvas>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="h-kicker"><div class="h-kicker-dot"></div><span class="h-kicker-txt">Battery Intelligence Platform · Live</span></div>
+      <h1 class="h1"><span class="l1">BMS</span><span class="l2">관리 시스템</span></h1>
+      <p class="h-desc">배터리 관리 시스템 설계 요구사항 기술 대시보드.<br>17개 챕터 · 실시간 뉴스 · 학술 논문 · BMS 계산기.</p>
+      <div class="h-btns">
+        <button class="hbtn hbtn-fill" onclick="goSec('sec-ch')">챕터 탐색 →</button>
+        <button class="hbtn hbtn-ol" onclick="goSec('sec-news')">뉴스 보기</button>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="scene">
+        <div class="bat3d" id="bat3d">
+          <div class="face f-front"><div class="cells" id="cells"></div><div class="bat-lbl">BMS v4.2</div></div>
+          <div class="face f-back"></div>
+          <div class="face f-top"></div>
+          <div class="face f-bot"></div>
+          <div class="face f-left"></div>
+          <div class="face f-right"></div>
+        </div>
+      </div>
+      <div class="bat-glow"></div>
+      <div class="ui-card uc1">
+        <div class="uc-lbl">State of Charge</div>
+        <div class="uc-val" id="hSoc" style="color:var(--blue4)">76%</div>
+        <div class="uc-bar"><div class="uc-fill"></div></div>
+        <div class="uc-sub">충전 중 · 39분 남음</div>
+      </div>
+      <div class="ui-card uc2">
+        <div class="uc-lbl">Pack Temperature</div>
+        <div class="uc-val" id="hTemp" style="color:var(--green)">28.4°C</div>
+        <div class="uc-sub">정상 범위 · 냉각 ON</div>
+      </div>
+      <div class="ui-card uc3">
+        <div class="uc-lbl">Pack Voltage</div>
+        <div class="uc-val" id="hVolt" style="color:var(--amber)">396V</div>
+        <div class="uc-sub">현재 전력 · 48kW</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="sh-txt">Scroll</div><div class="sh-mouse"></div></div>
+</section>
+
+<!-- STATS -->
+<div class="stats-band reveal">
+  <div class="sc"><div class="sc-n">17</div><div class="sc-l">Chapters</div></div>
+  <div class="sc"><div class="sc-n">24h</div><div class="sc-l">Auto Cache</div></div>
+  <div class="sc"><div class="sc-n">3</div><div class="sc-l">Data Sources</div></div>
+  <div class="sc"><div class="sc-n">Free</div><div class="sc-l">No API Key</div></div>
+</div>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <div class="ti"><div class="ti-chip tc-b">BMS</div><div class="ti-t">배터리 관리 시스템 요구사항 대시보드</div></div>
+    <div class="ti"><div class="ti-chip tc-c">SOC</div><div class="ti-t">State of Charge Estimation · 칼만 필터</div></div>
+    <div class="ti"><div class="ti-chip tc-g">ISO</div><div class="ti-t">ISO 26262 기능 안전 · ASIL B/C/D</div></div>
+    <div class="ti"><div class="ti-chip tc-b">CAN</div><div class="ti-t">CAN FD 통신 · VCU · OBC 연동</div></div>
+    <div class="ti"><div class="ti-chip tc-c">SOH</div><div class="ti-t">State of Health · 배터리 노화 진단</div></div>
+    <div class="ti"><div class="ti-chip tc-g">EV</div><div class="ti-t">Electric Vehicle Battery Pack Design</div></div>
+    <div class="ti"><div class="ti-chip tc-b">BMS</div><div class="ti-t">배터리 관리 시스템 요구사항 대시보드</div></div>
+    <div class="ti"><div class="ti-chip tc-c">SOC</div><div class="ti-t">State of Charge Estimation · 칼만 필터</div></div>
+    <div class="ti"><div class="ti-chip tc-g">ISO</div><div class="ti-t">ISO 26262 기능 안전 · ASIL B/C/D</div></div>
+    <div class="ti"><div class="ti-chip tc-b">CAN</div><div class="ti-t">CAN FD 통신 · VCU · OBC 연동</div></div>
+    <div class="ti"><div class="ti-chip tc-c">SOH</div><div class="ti-t">State of Health · 배터리 노화 진단</div></div>
+    <div class="ti"><div class="ti-chip tc-g">EV</div><div class="ti-t">Electric Vehicle Battery Pack Design</div></div>
+  </div>
+</div>
+
+<!-- APPLICATIONS -->
+<section class="sec" id="sec-apps">
+  <div class="sec-ey reveal">Applications</div>
+  <h2 class="sec-h reveal rd1">배터리가 <em>바꾸는 세계</em></h2>
+  <p class="sec-p reveal rd2">전기차부터 우주 탐사까지 — 지능형 BMS가 에너지의 미래를 설계합니다</p>
+  <div class="uc-grid reveal rd3">
+    <div class="uc-card">
+      <img src="https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=600&h=280&fit=crop" alt="EV" loading="lazy">
+      <div class="uc-ov"></div>
+      <div class="uc-cont">
+        <div class="uc-chip">EV · Electric Vehicle</div>
+        <div class="uc-t">차세대 전기차</div>
+        <div class="uc-d">800V 고전압 아키텍처와 정밀 BMS로 18분 초급속 충전 실현</div>
+        <div class="uc-s">주행거리 +40% · 충전시간 -60%</div>
+      </div>
+    </div>
+    <div class="uc-card big">
+      <img src="https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=600&h=900&fit=crop" alt="ESS" loading="lazy" style="height:100%;min-height:536px">
+      <div class="uc-ov"></div>
+      <div class="uc-cont">
+        <div class="uc-chip">ESS · Energy Storage</div>
+        <div class="uc-t">그리드 규모<br>에너지 저장</div>
+        <div class="uc-d">재생에너지 잉여 전력을 저장하고 피크 수요에 즉각 공급. BMS가 수천 개 셀을 ms 단위로 제어합니다</div>
+        <div class="uc-s">그리드 안정성 99.98% · CO₂ -85%</div>
+      </div>
+    </div>
+    <div class="uc-card">
+      <img src="https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=600&h=280&fit=crop" alt="항공" loading="lazy">
+      <div class="uc-ov"></div>
+      <div class="uc-cont">
+        <div class="uc-chip">Aviation · UAM</div>
+        <div class="uc-t">도심 항공 모빌리티</div>
+        <div class="uc-d">eVTOL 항공기용 초경량 고밀도 배터리 팩과 실시간 안전 진단 BMS</div>
+        <div class="uc-s">에너지 밀도 400Wh/kg 목표</div>
+      </div>
+    </div>
+    <div class="uc-card">
+      <img src="https://images.unsplash.com/photo-1569163139599-0f4517e36f51?w=600&h=280&fit=crop" alt="우주" loading="lazy">
+      <div class="uc-ov"></div>
+      <div class="uc-cont">
+        <div class="uc-chip">Space · Defense</div>
+        <div class="uc-t">우주 · 방위산업</div>
+        <div class="uc-d">극한 환경에서도 작동하는 군용·우주급 배터리 관리 시스템</div>
+        <div class="uc-s">-40°C ~ +85°C 동작 보장</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FUTURE BAND -->
+<div class="future-band reveal">
+  <div class="fb-ey">The Future of Energy Intelligence</div>
+  <h2 class="fb-h">AI가 예측하고<br><span class="g">배터리가 결정한다</span></h2>
+  <p class="fb-p">차세대 BMS는 딥러닝 기반 열화 예측·디지털 트윈·클라우드 연동을 통해 배터리의 전 생애주기를 지능적으로 관리하는 플랫폼으로 진화하고 있습니다.</p>
+  <div class="fb-tags">
+    <div class="fb-tag">🤖 AI / ML 기반 SOH 예측</div>
+    <div class="fb-tag">☁️ 클라우드 OTA 업데이트</div>
+    <div class="fb-tag">🔮 디지털 트윈 시뮬레이션</div>
+    <div class="fb-tag">⚡ 전고체 배터리 대응</div>
+    <div class="fb-tag">🛡️ ISO 26262 ASIL-D</div>
+    <div class="fb-tag">🌐 V2G 양방향 충전</div>
+    <div class="fb-tag">📡 실시간 원격 진단</div>
+    <div class="fb-tag">🧬 셀 디지털 패스포트</div>
+  </div>
+</div>
+
+<!-- NEWS -->
+<section class="sec sec-alt" id="sec-news">
+  <div class="sec-ey reveal">Latest Intelligence</div>
+  <h2 class="sec-h reveal rd1">BMS <em>최신 뉴스</em></h2>
+  <p class="sec-p reveal rd2">Google News 실시간 수집 · 24시간 자동 캐시</p>
+  <div class="sbox reveal rd3">
+    <div class="sbox-hd">
+      <div>
+        <div class="sbox-ey ey-b">Google News RSS</div>
+        <div class="sbox-t">뉴스 &amp; 트렌드</div>
+        <div class="sbox-badge sb-b" id="sn-topic">— 랜덤 챕터</div>
+        <div class="cache-row"><div class="cdot" id="sn-dot"></div><span id="sn-cache-txt">확인 중...</span></div>
+      </div>
+      <button class="act-btn ab-b" id="sn-btn" onclick="fetchSNForce()">
+        <svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>강제 갱신
+      </button>
+    </div>
+    <div id="sn-area"><div class="ph">로딩 중...</div></div>
+  </div>
+</section>
+
+
+<!-- SIMULATOR -->
+<section class="sim-sec" id="sec-sim">
+  <div class="sim-wrap">
+    <div class="sec-ey reveal">Live Simulator</div>
+    <h2 class="sec-h reveal rd1">BMS <em>시뮬레이터</em></h2>
+    <p class="sec-p reveal rd2">실제 물리 모델 기반 · 충방전 사이클 · 온도·전압·전류·SOC 실시간 추적</p>
+
+    <!-- 모드 선택 -->
+    <div class="sim-modes reveal rd3">
+      <button class="sim-mode-btn active" onclick="setSimMode('discharge',this)">⚡ 방전</button>
+      <button class="sim-mode-btn" onclick="setSimMode('charge',this)">🔋 충전</button>
+      <button class="sim-mode-btn" onclick="setSimMode('cycle',this)">🔄 사이클</button>
+    </div>
+
+    <div class="sim-panel reveal">
+      <!-- 컨트롤 -->
+      <div class="sim-controls">
+        <div class="sim-ctrl-title">Controls</div>
+
+        <div class="sim-play-row">
+          <button class="sim-play-btn spb-play" id="simPlayBtn" onclick="simPlay()">▶ 재생</button>
+          <button class="sim-play-btn spb-pause" id="simPauseBtn" onclick="simPause()" style="display:none">⏸ 일시정지</button>
+          <button class="sim-play-btn spb-reset" onclick="simReset()">⏹</button>
+        </div>
+
+        <div class="sim-ctrl-title" style="margin-bottom:8px">배속</div>
+        <div class="sim-speed-row">
+          <button class="speed-btn active" onclick="setSpeed(1,this)">1x</button>
+          <button class="speed-btn" onclick="setSpeed(2,this)">2x</button>
+          <button class="speed-btn" onclick="setSpeed(5,this)">5x</button>
+          <button class="speed-btn" onclick="setSpeed(10,this)">10x</button>
+        </div>
+
+        <div class="sim-ctrl-title" style="margin-top:6px">Parameters</div>
+
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-hd"><div class="sim-slider-lbl">용량 (Ah)</div><div class="sim-slider-val" id="sv-cap">100 Ah</div></div>
+          <input type="range" class="sim-slider" id="sl-cap" min="20" max="300" value="100" oninput="updateSlider('cap',this.value)">
+        </div>
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-hd"><div class="sim-slider-lbl">초기 SOC (%)</div><div class="sim-slider-val" id="sv-soc0">80 %</div></div>
+          <input type="range" class="sim-slider" id="sl-soc0" min="5" max="100" value="80" oninput="updateSlider('soc0',this.value)">
+        </div>
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-hd"><div class="sim-slider-lbl">전류 (A)</div><div class="sim-slider-val" id="sv-curr">30 A</div></div>
+          <input type="range" class="sim-slider" id="sl-curr" min="5" max="150" value="30" oninput="updateSlider('curr',this.value)">
+        </div>
+        <div class="sim-slider-wrap">
+          <div class="sim-slider-hd"><div class="sim-slider-lbl">주변 온도 (°C)</div><div class="sim-slider-val" id="sv-temp">25 °C</div></div>
+          <input type="range" class="sim-slider" id="sl-temp" min="-20" max="45" value="25" oninput="updateSlider('temp',this.value)">
+        </div>
+
+        <!-- 실시간 상태 -->
+        <div class="sim-status">
+          <div class="sim-status-row"><div class="sim-status-k">SOC</div><div class="sim-status-v sv-soc" id="ss-soc">—</div></div>
+          <div class="sim-status-row"><div class="sim-status-k">전압</div><div class="sim-status-v sv-v" id="ss-v">—</div></div>
+          <div class="sim-status-row"><div class="sim-status-k">전류</div><div class="sim-status-v sv-i" id="ss-i">—</div></div>
+          <div class="sim-status-row"><div class="sim-status-k">온도</div><div class="sim-status-v sv-t" id="ss-t">—</div></div>
+          <div class="sim-status-row"><div class="sim-status-k">SOH</div><div class="sim-status-v sv-soh" id="ss-soh">—</div></div>
+        </div>
+      </div>
+
+      <!-- 그래프 4개 -->
+      <div>
+        <div class="sim-graphs">
+          <div class="sim-graph-card">
+            <div class="sim-graph-title"><div class="sg-dot" style="background:#60a5fa"></div>SOC (%)</div>
+            <canvas id="gSOC"></canvas>
+          </div>
+          <div class="sim-graph-card">
+            <div class="sim-graph-title"><div class="sg-dot" style="background:#06b6d4"></div>전압 (V)</div>
+            <canvas id="gV"></canvas>
+          </div>
+          <div class="sim-graph-card">
+            <div class="sim-graph-title"><div class="sg-dot" style="background:#10b981"></div>전류 (A)</div>
+            <canvas id="gI"></canvas>
+          </div>
+          <div class="sim-graph-card">
+            <div class="sim-graph-title"><div class="sg-dot" style="background:#f59e0b"></div>온도 (°C)</div>
+            <canvas id="gT"></canvas>
+          </div>
+        </div>
+        <div class="sim-time">
+          경과 시간: <span id="sim-elapsed">0:00</span>
+          <span class="sim-cycle-badge" id="sim-cycle-badge" style="display:none">🔄 사이클 <span id="sim-cycle-num">1</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTERS -->
+<section class="sec sec-dark" id="sec-ch">
+  <div class="sec-ey reveal">Requirements</div>
+  <h2 class="sec-h reveal rd1">17개 <em>챕터</em></h2>
+  <p class="sec-p reveal rd2">카드를 클릭하면 스펙 · 뉴스 · 논문을 바로 조회할 수 있습니다</p>
+  <div class="ch-rows reveal">
+    <div>
+      <div class="ch-rh"><div class="ch-rbadge rb1">Row 01</div><div class="ch-rname">기초 설계 &amp; 센싱</div><div class="ch-rline"></div><div class="ch-rcnt">Ch.01–05</div></div>
+      <div class="ch-hs" id="chRow1"></div>
+    </div>
+    <div>
+      <div class="ch-rh"><div class="ch-rbadge rb2">Row 02</div><div class="ch-rname">고전압 제어 &amp; 통신</div><div class="ch-rline"></div><div class="ch-rcnt">Ch.06–11</div></div>
+      <div class="ch-hs" id="chRow2"></div>
+    </div>
+    <div>
+      <div class="ch-rh"><div class="ch-rbadge rb3">Row 03</div><div class="ch-rname">데이터 &amp; 추정 · 진단</div><div class="ch-rline"></div><div class="ch-rcnt">Ch.12–17</div></div>
+      <div class="ch-hs" id="chRow3"></div>
+    </div>
+  </div>
+  <div class="ch-exp" id="chExp" style="margin-top:22px">
+    <div class="exp-hd"><div class="exp-num" id="expNum">—</div><div class="exp-title" id="expTitle">—</div><button class="exp-close" onclick="closeExp()">✕</button></div>
+    <div class="exp-body">
+      <div class="exp-sum" id="expSum"></div>
+      <div class="spec-grid" id="expSpec"></div>
+      <div class="exp-btns">
+        <button class="exp-btn" id="enb" onclick="expNews()"><svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>뉴스 갱신</button>
+        <button class="exp-btn gr" id="epb" onclick="expPaper()"><svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>논문 갱신</button>
+      </div>
+      <div id="ena"><div class="ph">뉴스 갱신 버튼을 눌러주세요</div></div>
+      <div style="margin-top:11px" id="epa"><div class="ph">논문 갱신 버튼을 눌러주세요</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<div class="dash-sec" id="sec-dash">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="sec-ey reveal">Interactive Calculator</div>
+    <h2 class="sec-h reveal rd1">실시간 <em>배터리 분석</em></h2>
+    <p class="sec-p reveal rd2">값을 입력하면 게이지가 실시간으로 반응합니다</p>
+    <div class="dash-grid reveal">
+      <div class="dash-card">
+        <div class="dash-card-t">SOC / SOE 추정</div>
+        <div class="dash-fields">
+          <div class="df"><div class="df-l">용량 (Ah)</div><input class="df-i" id="di-cap" type="number" value="100"></div>
+          <div class="df"><div class="df-l">초기 SOC (%)</div><input class="df-i" id="di-s0" type="number" value="80"></div>
+          <div class="df"><div class="df-l">전류 (A)</div><input class="df-i" id="di-I" type="number" value="-30"></div>
+          <div class="df"><div class="df-l">시간 (분)</div><input class="df-i" id="di-t" type="number" value="120"></div>
+          <div class="df"><div class="df-l">셀 전압 (V)</div><input class="df-i" id="di-v" type="number" value="3.7" step="0.01"></div>
+        </div>
+        <button class="dash-run" onclick="runDash()">▶ 계산 실행</button>
+        <div class="gauge-row"><div class="g-lbl">SOC</div><div class="g-bg"><div class="g-fill gf-soc" id="dg-soc" style="width:80%"></div></div><div class="g-val" id="dv-soc">80%</div></div>
+        <div class="gauge-row"><div class="g-lbl">SOE 소비</div><div class="g-bg"><div class="g-fill gf-sop" id="dg-soe" style="width:0%"></div></div><div class="g-val" id="dv-soe">0 Wh</div></div>
+        <div class="gauge-row"><div class="g-lbl">순간 전력</div><div class="g-bg"><div class="g-fill gf-pw" id="dg-sop" style="width:0%"></div></div><div class="g-val" id="dv-sop">—</div></div>
+        <div class="res-grid" id="dash-res">
+          <div class="res-cell"><div class="rv" id="dr-soc">—</div><div class="rl">최종 SOC</div></div>
+          <div class="res-cell"><div class="rv p" id="dr-soe">—</div><div class="rl">소비 에너지</div></div>
+          <div class="res-cell"><div class="rv y" id="dr-sop">—</div><div class="rl">순간 전력</div></div>
+          <div class="res-cell"><div class="rv g" id="dr-time">—</div><div class="rl">방전까지</div></div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-t">SOH 노화 분석</div>
+        <div class="dash-fields">
+          <div class="df"><div class="df-l">초기 용량 (Ah)</div><input class="df-i" id="dh-c0" type="number" value="100"></div>
+          <div class="df"><div class="df-l">현재 용량 (Ah)</div><input class="df-i" id="dh-cn" type="number" value="87"></div>
+          <div class="df"><div class="df-l">초기 저항 (mΩ)</div><input class="df-i" id="dh-r0" type="number" value="5" step="0.1"></div>
+          <div class="df"><div class="df-l">현재 저항 (mΩ)</div><input class="df-i" id="dh-rn" type="number" value="6.8" step="0.1"></div>
+          <div class="df"><div class="df-l">팩 전압 (V)</div><input class="df-i" id="dh-v" type="number" value="400"></div>
+        </div>
+        <button class="dash-run" onclick="runSOH()">▶ SOH 분석</button>
+        <div class="gauge-row"><div class="g-lbl">SOH</div><div class="g-bg"><div class="g-fill gf-soh" id="dg-soh" style="width:87%"></div></div><div class="g-val" id="dv-soh">87%</div></div>
+        <div class="gauge-row"><div class="g-lbl">용량 유지</div><div class="g-bg"><div class="g-fill gf-soc" id="dg-cap" style="width:87%"></div></div><div class="g-val" id="dv-cap">87%</div></div>
+        <div class="gauge-row"><div class="g-lbl">저항 증가</div><div class="g-bg"><div class="g-fill gf-pw" id="dg-res" style="width:36%"></div></div><div class="g-val" id="dv-res">36%</div></div>
+        <div class="res-grid" id="soh-res">
+          <div class="res-cell"><div class="rv" id="drs-soh">—</div><div class="rl">SOH</div></div>
+          <div class="res-cell"><div class="rv y" id="drs-life">—</div><div class="rl">잔여 수명</div></div>
+          <div class="res-cell"><div class="rv g" id="drs-grade">—</div><div class="rl">등급</div></div>
+          <div class="res-cell"><div class="rv b" id="drs-pw">—</div><div class="rl">최대 출력</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAPERS -->
+<section class="sec sec-alt" id="sec-papers">
+  <div class="sec-ey reveal">Academic Research</div>
+  <h2 class="sec-h reveal rd1">관련 <em>논문</em></h2>
+  <div class="sbox reveal rd2">
+    <div class="sbox-hd">
+      <div>
+        <div class="sbox-ey ey-c">CrossRef API · DOI Based</div>
+        <div class="sbox-t">학술 논문 &amp; 연구</div>
+        <div class="sbox-badge sb-c" id="sp-topic">— 자동 로딩 중...</div>
+        <div class="cache-row"><div class="cdot fresh"></div><span id="sp-badge-info">24h 자동 캐시</span></div>
+      </div>
+      <button class="act-btn ab-c" id="sp-btn" onclick="fetchSPForce()">
+        <svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>논문 갱신
+      </button>
+    </div>
+    <div id="sp-area"><div class="ph">논문 갱신 버튼을 눌러주세요</div></div>
+  </div>
+</section>
+
+<!-- REFERENCES -->
+<section class="sec sec-dark" id="sec-refs">
+  <div class="sec-ey reveal">References</div>
+  <h2 class="sec-h reveal rd1">참고 <em>문헌</em></h2>
+  <div class="sbox reveal rd2">
+    <div class="sbox-hd">
+      <div>
+        <div class="sbox-ey ey-a">CrossRef · DOI Verified</div>
+        <div class="sbox-t">References</div>
+        <div style="margin-top:5px;font-size:11.5px;color:var(--w30);line-height:1.6">⚠ DOI 링크로 원문을 직접 확인하세요.</div>
+        <div class="cache-row"><div class="cdot fresh"></div><span id="rf-badge-info">24h 자동 캐시</span></div>
+      </div>
+      <button class="act-btn ab-a" id="rf-btn" onclick="fetchRefsForce()">
+        <svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>참고문헌 갱신
+      </button>
+    </div>
+    <div id="rf-area"><div class="ph">참고문헌 갱신 버튼을 눌러주세요</div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="fl">BMS Platform · <span>Battery Intelligence System</span> · 2-01 요구사항</div>
+  <div class="fr">Google News · CrossRef API · No API Key</div>
+</footer>
+
+<!-- CALCULATOR -->
+<button class="fab" onclick="openCalc()">⚡ BMS 계산기<div class="fab-dot"></div></button>
+<div class="c-ov" id="cOv" onclick="closeCalc()"></div>
+<div class="c-pan" id="cPan">
+  <div class="c-hd"><div class="c-hd-ic">⚡</div><div><div class="c-hd-t">BMS 계산기</div><div class="c-hd-s">SOC · SOH · 전력 분석</div></div><button class="c-cls" onclick="closeCalc()">✕</button></div>
+  <div class="c-tabs">
+    <button class="c-tab active" onclick="cTab('soc',this)">SOC 추정</button>
+    <button class="c-tab" onclick="cTab('soh',this)">SOH 분석</button>
+    <button class="c-tab" onclick="cTab('pw',this)">전력 계산</button>
+  </div>
+  <div class="c-body">
+    <div class="ctc active" id="ct-soc">
+      <div class="cfg">
+        <div class="cfd"><div class="clbl">배터리 용량</div><input class="cinp" id="cc-cap" type="number" value="100"><div class="cunit">Ah</div></div>
+        <div class="cfd"><div class="clbl">초기 SOC</div><input class="cinp" id="cc-s0" type="number" value="80"><div class="cunit">%</div></div>
+        <div class="cfd"><div class="clbl">전류</div><input class="cinp" id="cc-I" type="number" value="-20"><div class="cunit">A</div></div>
+        <div class="cfd"><div class="clbl">시간</div><input class="cinp" id="cc-t" type="number" value="180"><div class="cunit">분</div></div>
+        <div class="cfd"><div class="clbl">셀 전압</div><input class="cinp" id="cc-v" type="number" value="3.7" step="0.01"><div class="cunit">V</div></div>
+      </div>
+      <button class="crun" onclick="cSOC()">▶ 계산 실행</button>
+      <div class="crg" id="crs" style="display:none">
+        <div class="crc"><div class="crv" id="cv-soc">—</div><div class="crl">최종 SOC</div></div>
+        <div class="crc"><div class="crv b" id="cv-soe">—</div><div class="crl">소비 에너지</div></div>
+        <div class="crc"><div class="crv y" id="cv-sop">—</div><div class="crl">순간 전력</div></div>
+      </div>
+      <div class="cch" id="cch-soc" style="display:none;height:180px"><canvas id="cChSOC"></canvas></div>
+      <div class="cwn" id="cwn-soc" style="display:none"></div>
+    </div>
+    <div class="ctc" id="ct-soh">
+      <div class="cfg">
+        <div class="cfd"><div class="clbl">초기 용량</div><input class="cinp" id="cs-c0" type="number" value="100"><div class="cunit">Ah</div></div>
+        <div class="cfd"><div class="clbl">현재 용량</div><input class="cinp" id="cs-cn" type="number" value="87"><div class="cunit">Ah</div></div>
+        <div class="cfd"><div class="clbl">초기 저항</div><input class="cinp" id="cs-r0" type="number" value="5" step="0.1"><div class="cunit">mΩ</div></div>
+        <div class="cfd"><div class="clbl">현재 저항</div><input class="cinp" id="cs-rn" type="number" value="6.8" step="0.1"><div class="cunit">mΩ</div></div>
+      </div>
+      <button class="crun" onclick="cSOH()">▶ SOH 분석</button>
+      <div id="cr-soh" style="display:none">
+        <div class="sbox2"><div class="spct" id="sp-pct">—</div><div style="font-size:11px;color:var(--w30);margin-top:3px">State of Health</div><div class="sgrd" id="sp-grd">—</div></div>
+        <div class="slbs"><span>0%</span><span>교체 70%</span><span>100%</span></div>
+        <div class="sbw"><div class="sb" id="sp-bar" style="width:0%"></div></div>
+        <div class="crg" style="margin-top:8px">
+          <div class="crc"><div class="crv r" id="sp-deg">—</div><div class="crl">용량 열화</div></div>
+          <div class="crc"><div class="crv y" id="sp-ri">—</div><div class="crl">저항 증가</div></div>
+          <div class="crc"><div class="crv p" id="sp-lf">—</div><div class="crl">잔여 수명</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="ctc" id="ct-pw">
+      <div class="cfg">
+        <div class="cfd"><div class="clbl">팩 전압</div><input class="cinp" id="cp-v" type="number" value="400"><div class="cunit">V</div></div>
+        <div class="cfd"><div class="clbl">최대 전류</div><input class="cinp" id="cp-i" type="number" value="200"><div class="cunit">A</div></div>
+        <div class="cfd"><div class="clbl">내부 저항</div><input class="cinp" id="cp-r" type="number" value="5" step="0.1"><div class="cunit">mΩ</div></div>
+        <div class="cfd"><div class="clbl">현재 SOC</div><input class="cinp" id="cp-s" type="number" value="60"><div class="cunit">%</div></div>
+      </div>
+      <button class="crun" onclick="cPW()">▶ 전력 분석</button>
+      <div id="cr-pw" style="display:none">
+        <div class="crg" style="grid-template-columns:1fr 1fr">
+          <div class="crc"><div class="crv g" id="cp-pk">—</div><div class="crl">최대 방전</div></div>
+          <div class="crc"><div class="crv b" id="cp-ch">—</div><div class="crl">최대 충전</div></div>
+          <div class="crc"><div class="crv y" id="cp-ls">—</div><div class="crl">저항 손실</div></div>
+          <div class="crc"><div class="crv p" id="cp-ef">—</div><div class="crl">전력 효율</div></div>
+        </div>
+        <div class="cch" style="height:150px;margin-top:9px"><canvas id="cChPW"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ 데이터 ══
+var ALL_CHS=[
+  {n:'01',t:'배터리 팩 토폴로지',i:'직병렬 구성 · 셀→모듈→팩',tag:'Pack Topology',img:'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&h=200&fit=crop',en:'battery pack topology BMS electric vehicle'},
+  {n:'02',t:'BMS 설계 요구 사항',i:'ISO 26262 · 기능 안전',tag:'System Design',img:'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=200&fit=crop',en:'battery management system design requirements'},
+  {n:'03',t:'전압 센싱 (1a)',i:'±5mV · AFE IC',tag:'Voltage',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=200&fit=crop',en:'battery cell voltage sensing BMS accuracy'},
+  {n:'04',t:'온도 센싱 (1b)',i:'NTC / PT100 · 열폭주',tag:'Thermal',img:'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&h=200&fit=crop',en:'battery temperature sensing NTC thermistor BMS'},
+  {n:'05',t:'전류 센싱 (1c)',i:'홀센서 / 션트 · ±0.5%',tag:'Current',img:'https://images.unsplash.com/photo-1620714223084-8fcacc2dfd4d?w=400&h=200&fit=crop',en:'battery current sensing hall effect shunt'},
+  {n:'06',t:'고전압 접촉기 (1d)',i:'메인 릴레이 · Pre-charge',tag:'HV Contactor',img:'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=200&fit=crop',en:'high voltage contactor relay control BMS precharge'},
+  {n:'07',t:'절연 센싱 (1e)',i:'IMD · 500kΩ 유지',tag:'IMD',img:'https://images.unsplash.com/photo-1551703599-6c8f82feac6e?w=400&h=200&fit=crop',en:'battery insulation monitoring device IMD leakage'},
+  {n:'08',t:'열제어 (1f)',i:'냉각/가열 · PID',tag:'Thermal Ctrl',img:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=200&fit=crop',en:'battery thermal management cooling heating BMS'},
+  {n:'09',t:'전압 센싱 2',i:'팩 레벨 · 셀 밸런싱',tag:'Pack Voltage',img:'https://images.unsplash.com/photo-1602837385569-1c324660cf7e?w=400&h=200&fit=crop',en:'battery pack voltage measurement cell balancing'},
+  {n:'10',t:'충전기 제어 (3a)',i:'OBC · CC-CV',tag:'Charger',img:'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=400&h=200&fit=crop',en:'BMS on-board charger OBC CC-CV charging control'},
+  {n:'11',t:'CAN 버스 (3b)',i:'CAN FD · VCU 연동',tag:'CAN Bus',img:'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=400&h=200&fit=crop',en:'BMS CAN bus FD communication protocol automotive'},
+  {n:'12',t:'로그북 (3c)',i:'DTC · 충방전 이력',tag:'Data Log',img:'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=200&fit=crop',en:'BMS data logging fault recording DTC battery'},
+  {n:'13',t:'SOC 추정 (4a)',i:'칼만 필터 · ±2%',tag:'SOC',img:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=200&fit=crop',en:'state of charge estimation battery SOC Kalman filter'},
+  {n:'14',t:'SOE 추정 (4b)',i:'에너지(Wh) · DTE',tag:'SOE',img:'https://images.unsplash.com/photo-1612538498456-e861df91d4d0?w=400&h=200&fit=crop',en:'state of energy estimation SOE battery electric vehicle'},
+  {n:'15',t:'SOP 추정 (4c)',i:'최대전력 · 회생제동',tag:'SOP',img:'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=400&h=200&fit=crop',en:'state of power estimation SOP battery peak power'},
+  {n:'16',t:'진단 (5)',i:'OV/UV/OC/OT · ISO 26262',tag:'Diagnostics',img:'https://images.unsplash.com/photo-1563770660941-20978e870e26?w=400&h=200&fit=crop',en:'BMS battery diagnosis fault detection ISO 26262'},
+  {n:'17',t:'결론 및 향후 방향',i:'AI · 클라우드 · 전고체',tag:'Future',img:'https://images.unsplash.com/photo-1569163139599-0f4517e36f51?w=400&h=200&fit=crop',en:'battery management system future AI solid state battery'},
+];
+var SUM={'01':'배터리 팩 토폴로지는 셀·모듈·팩의 직병렬 구성 방식을 정의합니다. 전기차·ESS의 목표 전압·용량에 맞춰 설계되며, 토폴로지 선택이 BMS 복잡도와 안전성에 직결됩니다.','02':'BMS 설계 시 요구사항은 ISO 26262 기능 안전, 성능, 통신, 진단 등 다양한 표준을 망라합니다.','03':'전압 센싱(Req. 1a)은 각 셀의 전압을 정밀 측정하는 기능으로, ±5mV 이내의 정확도가 요구됩니다.','04':'온도 센싱(Req. 1b)은 셀·냉각판 온도를 모니터링하여 열폭주를 사전 감지합니다.','05':'전류 센싱(Req. 1c)은 충방전 전류를 측정하여 SOC 산출과 과전류 보호에 활용됩니다.','06':'고전압 접촉기 제어(Req. 1d)는 메인 릴레이 개폐로 고전압 회로를 안전하게 관리합니다.','07':'절연 센싱(Req. 1e)은 고전압 회로와 차체 간 절연 저항을 실시간 감시합니다.','08':'열제어(Req. 1f)는 배터리 온도를 최적 범위로 유지하는 냉각/가열 시스템을 제어합니다.','09':'전압 센싱 Req. 2는 모듈·팩 레벨 전압 측정을 다룹니다.','10':'충전기 제어(Req. 3a)는 OBC와 통신으로 충전 프로파일을 관리합니다.','11':'CAN 버스 통신(Req. 3b)은 BMS와 VCU·충전기 간 데이터 교환을 담당합니다.','12':'로그북 기능(Req. 3c)은 충방전 이력·고장 코드를 기록합니다.','13':'SOC 추정(Req. 4a)은 배터리 잔존 충전량을 0~100%로 산출합니다.','14':'SOE 추정(Req. 4b)은 잔존 에너지(Wh)를 산출합니다.','15':'SOP 추정(Req. 4c)은 현재 가능한 최대 충방전 전력을 예측합니다.','16':'BMS 진단(Req. 5)은 과전압·과전류·과온도 등 이상 상태를 실시간 감지합니다.','17':'BMS 기술은 AI 예측·클라우드 연동·전고체 배터리 대응으로 진화 중입니다.'};
+var SPECS={'01':[['토폴로지','직렬+병렬'],['팩 전압','100–1000V'],['에너지밀도','200–300Wh/kg'],['설계수명','>10년']],'02':[['안전등급','ISO 26262 ASIL-D'],['환경규격','AEC-Q100'],['통신','CAN/AUTOSAR'],['수명','>10년']],'03':[['정확도','±5mV 이내'],['측정방식','AFE IC'],['샘플링','100ms'],['측정대상','셀/모듈/팩']],'04':[['정확도','±1°C 이내'],['센서','NTC / PT100'],['경보온도','>55°C'],['측정위치','셀·냉각판']],'05':[['정확도','±0.5% FS'],['방식','홀센서/션트'],['범위','±500A'],['샘플링','10ms']],'06':[['소자','DC 접촉기'],['Pre-charge','RC 제어'],['차단시간','<5ms'],['용착감지','포함']],'07':[['절연저항','≥500kΩ'],['방식','AC 임피던스'],['규격','IEC 61557-8'],['응답','<500ms']],'08':[['냉각방식','수냉/공냉'],['목표온도','15–35°C'],['제어','PID 피드백'],['균일성','±5°C']],'09':[['범위','0–1000V'],['분해능','1mV'],['통신','SPI/I²C'],['ADC','16-bit']],'10':[['방식','CC-CV'],['통신','PLC/CAN'],['최대전류','250A'],['효율','>96%']],'11':[['프로토콜','CAN 2.0B/FD'],['속도','최대 5Mbps'],['규격','ISO 11898'],['연결','VCU/OBC']],'12':[['저장','EEPROM/Flash'],['기록','DTC·SOC·전압'],['이력','>5년'],['포맷','UDS 호환']],'13':[['알고리즘','EKF/LSTM'],['정확도','±2% 이내'],['업데이트','100ms'],['보정','온도보정 포함']],'14':[['기반','SOC×OCV×T'],['활용','DTE 예측'],['오차','<3%'],['단위','Wh']],'15':[['기반','내부저항 모델'],['연속출력','10초 기준'],['SOC의존','포함'],['단위','kW']],'16':[['감지','OV/UV/OC/OT/ISO'],['등급','ASIL B–D'],['DTC','ISO 14229'],['응답','<1ms']],'17':[['미래기술','AI/전고체'],['클라우드','OTA 업데이트'],['V2G','양방향 충전'],['수명목표','>20년']]};
+var RQ=['state of charge estimation lithium ion battery Kalman filter','battery management system CAN bus communication automotive','battery thermal management cooling electric vehicle','battery insulation monitoring high voltage vehicle safety','ISO 26262 functional safety battery management','battery current sensing hall effect shunt automotive'];
+var FB=['https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=480&h=240&fit=crop','https://images.unsplash.com/photo-1518770660439-4636190af475?w=480&h=240&fit=crop','https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=480&h=240&fit=crop','https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=480&h=240&fit=crop','https://images.unsplash.com/photo-1620714223084-8fcacc2dfd4d?w=480&h=240&fit=crop'];
+function pfb(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return FB[Math.abs(h)%FB.length];}
+
+var cn=0,cp=0,aCh=null,_sc=null,_pc=null;
+function delay(ms){return new Promise(function(r){setTimeout(r,ms);});}
+var IR='<svg viewBox="0 0 12 12"><path d="M10 6A4 4 0 1 1 6 2"/><polyline points="10 2 10 6 6 6"/></svg>';
+var IS='<svg viewBox="0 0 12 12"><circle cx="5" cy="5" r="3.5"/><line x1="7.5" y1="7.5" x2="11" y2="11"/></svg>';
+function NP1(q){return'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent('https://news.google.com/rss/search?q='+encodeURIComponent(q)+'&hl=ko&gl=KR&ceid=KR:ko');}
+function NP2(q){return'https://api.allorigins.win/get?url='+encodeURIComponent('https://news.google.com/rss/search?q='+encodeURIComponent(q)+'&hl=en&gl=US&ceid=US:en');}
+function sh(s){return(s||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").trim();}
+function fd(s){try{return new Date(s).toLocaleDateString('ko-KR');}catch(e){return s||'';}}
+function sh2(u){try{return new URL(u).hostname.replace('www.','');}catch(e){return '출처';}}
+function xImg(h){if(!h)return null;var m=h.match(/<img[^>]+src=["']([^"'\s]+)["']/i);if(m&&m[1]&&m[1].startsWith('http')&&!m[1].includes('1x1'))return m[1];return null;}
+function xImgX(r){var m=r.match(/media:(?:content|thumbnail)[^>]+url=["']([^"']+)["']/i);return m?m[1]:null;}
+
+async function fetchNews(q){
+  try{
+    var r=await fetch(NP1(q));
+    if(r.ok){var d=await r.json();if(d.status==='ok'&&d.items&&d.items.length){return d.items.slice(0,4).map(function(it){var img=it.thumbnail||(it.enclosure&&it.enclosure.link)||xImg(it.description)||null;if(img&&(img.includes('1x1')||img.length<20))img=null;return{title:sh(it.title),source:it.author||sh2(it.link),date:fd(it.pubDate),summary:sh(it.description||'').slice(0,160)+'…',link:it.link,img:img||pfb(it.title||q)};});}}
+  }catch(e){}
+  await delay(400);
+  var r2=await fetch(NP2(q));if(!r2.ok)throw new Error('뉴스 서버 연결 실패');
+  var d2=await r2.json();var raw=d2.contents||'';var xml=new DOMParser().parseFromString(raw,'text/xml');
+  var items=Array.from(xml.querySelectorAll('item')).slice(0,4);if(!items.length)throw new Error('결과 없음');
+  var strs=[];var cur=0;
+  for(var i=0;i<items.length;i++){var s=raw.indexOf('<item>',cur);var ne=i+1<items.length?raw.indexOf('<item>',s+6):raw.length;strs.push(raw.slice(s,ne));cur=s+6;}
+  return items.map(function(it,i){var desc=(it.querySelector('description')&&it.querySelector('description').textContent)||'';var img=xImgX(strs[i]||'')||xImg(desc)||null;if(img&&(img.includes('1x1')||img.length<20))img=null;var title=sh((it.querySelector('title')&&it.querySelector('title').textContent)||'');return{title:title,source:(it.querySelector('source')&&it.querySelector('source').textContent)||sh2((it.querySelector('link')&&it.querySelector('link').textContent)||''),date:fd((it.querySelector('pubDate')&&it.querySelector('pubDate').textContent)||''),summary:sh(desc).slice(0,160)+'…',link:(it.querySelector('link')&&it.querySelector('link').textContent)||'#',img:img||pfb(title||q)};});
+}
+async function crSearch(q,rows){var r=await fetch('https://api.crossref.org/works?query='+encodeURIComponent(q)+'&rows='+rows+'&select=title,author,published,DOI,container-title');if(!r.ok)throw new Error('CrossRef 오류');var d=await r.json();return(d.message&&d.message.items)||[];}
+function parseCR(it,i){return{num:i+1,title:(it.title||['제목 없음'])[0],authors:(it.author||[]).slice(0,3).map(function(a){return(a.family||'')+(a.given&&a.given[0]?' '+a.given[0]+'.':'');}).join(', ')+(it.author&&it.author.length>3?' 외':'')||'미상',journal:(it['container-title']||[])[0]||'저널 미상',year:it.published&&it.published['date-parts']&&it.published['date-parts'][0]&&it.published['date-parts'][0][0]||'미상',doi:it.DOI||null};}
+function nCard(it){var imgH=it.img?'<div class="nc-img"><img src="'+it.img+'" alt="" loading="lazy" onerror="this.parentElement.style.display=\'none\'"><div class="nc-ov"></div></div>':'';return'<div class="nc">'+imgH+'<div class="nc-body"><div class="nc-src">'+it.source+'</div><div class="nc-ttl">'+it.title+'</div><div class="nc-sum">'+it.summary+'<span class="nc-date">'+it.date+'</span><a class="nc-link" href="'+it.link+'" target="_blank" rel="noopener">원문 보기 <svg viewBox="0 0 12 12"><path d="M5 3h4v4M3 9l6-6"/></svg></a></div></div></div>';}
+function pCard(p){return'<div class="pc"><div class="pc-type">논문'+(p.doi?' · DOI':'')+'</div><div class="pc-t">'+p.title+'</div><div class="pc-m"><span><span class="pc-ml">저자 </span>'+p.authors+'</span><span><span class="pc-ml">저널 </span>'+p.journal+'</span><span><span class="pc-ml">연도 </span>'+p.year+'</span></div>'+(p.doi?'<a class="pc-link" href="https://doi.org/'+p.doi+'" target="_blank" rel="noopener">'+IS+' DOI 원문</a>':'')+'</div>';}
+
+// [24h 캐시: 아래 통합 시스템으로 대체]
+async function fetchSN(force){
+  var btn=document.getElementById('sn-btn'),area=document.getElementById('sn-area');
+  if(!force){var cache=getCache();if(isFresh(cache)){area.innerHTML='<div class="news-grid">'+cache.items.map(nCard).join('')+'</div>';updateCacheUI(cache);return;}}
+  var ch=ALL_CHS[Math.floor(Math.random()*ALL_CHS.length)];
+  var tp=document.getElementById('sn-topic');if(tp)tp.textContent='Ch.'+ch.n+' — '+ch.t;
+  if(btn){btn.disabled=true;btn.classList.add('spin');btn.innerHTML=IR+' 검색 중...';}
+  area.innerHTML='<div class="ph">'+ch.t+' 검색 중...</div>';
+  try{var its=await fetchNews(ch.en);saveCache('bms_news_c',{chNum:ch.n,items:its,ts:Date.now()});area.innerHTML='<div class="news-grid">'+its.map(nCard).join('')+'</div>';updateCacheUI(getCache());}
+  catch(e){area.innerHTML='<div class="err">⚠ '+e.message+'</div>';}
+  if(btn){btn.disabled=false;btn.classList.remove('spin');btn.innerHTML=IR+' 강제 갱신';}
+}
+
+
+// 챕터 빌드
+function buildWidgets(){
+  var rows=[{ids:['01','02','03','04','05'],tgt:'chRow1',c:'var(--blue)'},{ids:['06','07','08','09','10','11'],tgt:'chRow2',c:'var(--cyan)'},{ids:['12','13','14','15','16','17'],tgt:'chRow3',c:'#7c3aed'}];
+  rows.forEach(function(row){
+    var scroll=document.getElementById(row.tgt);if(!scroll||scroll.children.length>0)return;
+    row.ids.forEach(function(n){
+      var ch=ALL_CHS.find(function(x){return x.n===n;});if(!ch)return;
+      var el=document.createElement('div');el.className='wg';el.id='wg-'+ch.n;
+      el.innerHTML='<div class="wg-img"><img src="'+ch.img+'" alt="'+ch.t+'" loading="lazy" onerror="this.style.opacity=\'0\'"><div class="wg-ov"></div><div class="wg-n" style="background:'+row.c+';color:'+(row.c==='var(--cyan)'?'#000':'#fff')+'">'+ch.n+'</div><div class="wg-tag">'+ch.tag+'</div></div><div class="wg-body"><div class="wg-t">'+ch.t+'</div><div class="wg-i">'+ch.i+'</div></div>';
+      el.addEventListener('click',function(){openExp(ch.n);});
+      scroll.appendChild(el);
+    });
+  });
+}
+function openExp(n){
+  var ch=ALL_CHS.find(function(c){return c.n===n;});if(!ch)return;
+  document.querySelectorAll('.wg.active').forEach(function(w){w.classList.remove('active');});
+  var wg=document.getElementById('wg-'+n);if(wg)wg.classList.add('active');
+  aCh=n;
+  document.getElementById('expNum').textContent='Ch.'+n;
+  document.getElementById('expTitle').textContent=ch.t;
+  document.getElementById('expSum').textContent=SUM[n]||'';
+  var sg=document.getElementById('expSpec');sg.innerHTML='';
+  if(SPECS[n]){SPECS[n].forEach(function(s){sg.innerHTML+='<div class="spec-cell"><div class="spec-k">'+s[0]+'</div><div class="spec-v">'+s[1]+'</div></div>';});}
+  document.getElementById('ena').innerHTML='<div class="ph">뉴스 갱신을 눌러주세요</div>';
+  document.getElementById('epa').innerHTML='<div class="ph">논문 갱신을 눌러주세요</div>';
+  var exp=document.getElementById('chExp');exp.classList.add('show');
+  setTimeout(function(){exp.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
+}
+function closeExp(){document.getElementById('chExp').classList.remove('show');document.querySelectorAll('.wg.active').forEach(function(w){w.classList.remove('active');});aCh=null;}
+async function expNews(){
+  if(!aCh)return;var ch=ALL_CHS.find(function(c){return c.n===aCh;});
+  var btn=document.getElementById('enb'),area=document.getElementById('ena');
+  btn.disabled=true;btn.classList.add('spin');btn.innerHTML=IR+' ...';area.innerHTML='<div class="ph">검색 중...</div>';
+  try{var its=await fetchNews(ch.en);area.innerHTML='<div class="g2">'+its.map(nCard).join('')+'</div>';}catch(e){area.innerHTML='<div class="err">⚠ '+e.message+'</div>';}
+  btn.disabled=false;btn.classList.remove('spin');btn.innerHTML=IR+' 뉴스 갱신';
+}
+async function expPaper(){
+  if(!aCh)return;var ch=ALL_CHS.find(function(c){return c.n===aCh;});
+  var btn=document.getElementById('epb'),area=document.getElementById('epa');
+  btn.disabled=true;btn.classList.add('spin');btn.innerHTML=IR+' ...';area.innerHTML='<div class="ph">검색 중...</div>';
+  try{var its=await crSearch(ch.en,3);if(!its.length)throw new Error('결과 없음');area.innerHTML='<div class="g2">'+its.map(parseCR).map(pCard).join('')+'</div>';}catch(e){area.innerHTML='<div class="err">⚠ '+e.message+'</div>';}
+  btn.disabled=false;btn.classList.remove('spin');btn.innerHTML=IR+' 논문 갱신';
+}
+
+// 대시보드
+function runDash(){
+  var cap=+document.getElementById('di-cap').value||100,s0=+document.getElementById('di-s0').value||80,I=+document.getElementById('di-I').value||-30,mins=Math.min(+document.getElementById('di-t').value||120,480),V=+document.getElementById('di-v').value||3.7;
+  var ah=I*(mins/60),fs=Math.max(0,Math.min(100,s0+(ah/cap)*100)),soe=Math.abs(ah)*V,sop=Math.abs(I)*V,tl=I<0?Math.abs(s0/100*cap/Math.abs(I)*60):999;
+  document.getElementById('dg-soc').style.width=fs+'%';document.getElementById('dv-soc').textContent=fs.toFixed(1)+'%';
+  var sm=cap*V;document.getElementById('dg-soe').style.width=Math.min(100,soe/sm*100)+'%';document.getElementById('dv-soe').textContent=soe.toFixed(0)+' Wh';
+  document.getElementById('dg-sop').style.width=Math.min(100,sop/(sm)*100*2)+'%';document.getElementById('dv-sop').textContent=(sop/1000).toFixed(1)+' kW';
+  var se=document.getElementById('dr-soc');se.textContent=fs.toFixed(1)+'%';se.className='rv '+(fs>60?'g':fs>20?'y':'r');
+  document.getElementById('dr-soe').textContent=soe.toFixed(0)+' Wh';document.getElementById('dr-sop').textContent=(sop/1000).toFixed(1)+' kW';document.getElementById('dr-time').textContent=tl<999?Math.round(tl)+'분':'충전 중';
+  document.getElementById('dash-res').style.display='grid';
+}
+function runSOH(){
+  var c0=+document.getElementById('dh-c0').value||100,cn=+document.getElementById('dh-cn').value||87,r0=+document.getElementById('dh-r0').value||5,rn=+document.getElementById('dh-rn').value||6.8,pv=+document.getElementById('dh-v').value||400;
+  var soh=Math.round(Math.min(100,(cn/c0*100*.7+Math.max(0,100-(rn-r0)/r0*150)*.3))*10)/10,cap=Math.round(cn/c0*100*10)/10,res=Math.round(((rn-r0)/r0)*100*10)/10,life=Math.max(0,((soh-70)/30*8)).toFixed(1),grade=soh>90?'우수':soh>80?'양호':soh>70?'주의':'교체필요';
+  document.getElementById('dg-soh').style.width=soh+'%';document.getElementById('dv-soh').textContent=soh+'%';
+  document.getElementById('dg-cap').style.width=cap+'%';document.getElementById('dv-cap').textContent=cap+'%';
+  document.getElementById('dg-res').style.width=Math.min(100,res*3)+'%';document.getElementById('dv-res').textContent='+'+res+'%';
+  var se=document.getElementById('drs-soh');se.textContent=soh+'%';se.className='rv '+(soh>85?'g':soh>70?'y':'r');
+  document.getElementById('drs-life').textContent=life+'년';document.getElementById('drs-grade').textContent=grade;document.getElementById('drs-pw').textContent=Math.round(pv*(1000/rn)/1000)+' kW';
+  document.getElementById('soh-res').style.display='grid';
+}
+
+// 계산기
+function openCalc(){document.getElementById('cPan').classList.add('open');document.getElementById('cOv').classList.add('open');}
+function closeCalc(){document.getElementById('cPan').classList.remove('open');document.getElementById('cOv').classList.remove('open');}
+function cTab(id,btn){document.querySelectorAll('.c-tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.ctc').forEach(function(t){t.classList.remove('active');});btn.classList.add('active');document.getElementById('ct-'+id).classList.add('active');}
+function cSOC(){
+  var cap=+document.getElementById('cc-cap').value||100,s0=+document.getElementById('cc-s0').value||80,I=+document.getElementById('cc-I').value||-20,mins=Math.min(+document.getElementById('cc-t').value||180,480),V=+document.getElementById('cc-v').value||3.7;
+  var STEP=Math.max(1,Math.floor(mins/60)),lb=[],sa=[],ea=[],soc=s0,ah=0,wn=[];
+  for(var t=0;t<=mins;t+=STEP){if(t>0){ah+=I*(STEP/60);soc=Math.max(0,Math.min(100,s0+(ah/cap)*100));}lb.push(t+'m');sa.push(+soc.toFixed(1));ea.push(+(Math.abs(ah)*V).toFixed(1));if(soc<=20&&wn.length===0&&I<0)wn.push('⚠ '+t+'분 — SOC 20% 도달');if(soc>=95&&wn.length===0&&I>0)wn.push('⚠ '+t+'분 — CV 구간 진입');if(soc<=0&&I<0){wn.push('⚠ 완전 방전');break;}}
+  var fs=sa[sa.length-1],fe=ea[ea.length-1];
+  var el=document.getElementById('cv-soc');el.textContent=fs+'%';el.className='crv '+(fs>60?'g':fs>20?'y':'r');
+  document.getElementById('cv-soe').textContent=fe+' Wh';document.getElementById('cv-sop').textContent=+(Math.abs(I)*V).toFixed(0)+' W';
+  document.getElementById('crs').style.display='grid';document.getElementById('cch-soc').style.display='block';
+  var we=document.getElementById('cwn-soc');we.style.display=wn.length?'block':'none';we.textContent=wn.join('\n');
+  var ctx=document.getElementById('cChSOC').getContext('2d');if(_sc)_sc.destroy();
+  _sc=new Chart(ctx,{type:'line',data:{labels:lb,datasets:[{label:'SOC(%)',data:sa,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',fill:true,tension:.35,pointRadius:0,yAxisID:'y'},{label:'에너지(Wh)',data:ea,borderColor:'#f59e0b',fill:false,tension:.35,pointRadius:0,borderDash:[4,3],yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{labels:{color:'rgba(255,255,255,.5)',font:{size:10},boxWidth:10}},tooltip:{backgroundColor:'#0d0f1f',borderColor:'rgba(59,130,246,.3)',borderWidth:1,titleColor:'#fff',bodyColor:'rgba(255,255,255,.6)'}},scales:{x:{ticks:{color:'rgba(255,255,255,.3)',font:{size:9},maxTicksLimit:8,maxRotation:0},grid:{color:'rgba(255,255,255,.04)'}},y:{min:0,max:100,ticks:{color:'#60a5fa',font:{size:9},callback:function(v){return v+'%';}},grid:{color:'rgba(59,130,246,.06)'},position:'left'},y2:{ticks:{color:'#f59e0b',font:{size:9},callback:function(v){return v+'Wh';}},grid:{drawOnChartArea:false},position:'right'}}}});
+}
+function cSOH(){
+  var c0=+document.getElementById('cs-c0').value||100,cn=+document.getElementById('cs-cn').value||87,r0=+document.getElementById('cs-r0').value||5,rn=+document.getElementById('cs-rn').value||6.8;
+  var soh=Math.round(Math.min(100,(cn/c0*100*.7+Math.max(0,100-(rn-r0)/r0*150)*.3))*10)/10;
+  var gc=soh>90?['#10b981','rgba(16,185,129,.1)','우수 (Excellent)']:soh>80?['#f59e0b','rgba(245,158,11,.1)','양호 (Good)']:soh>70?['#f97316','rgba(249,115,22,.1)','주의 (Caution)']:['#ef4444','rgba(239,68,68,.1)','교체 필요'];
+  document.getElementById('sp-pct').textContent=soh+'%';document.getElementById('sp-pct').style.color=gc[0];
+  var g=document.getElementById('sp-grd');g.textContent=gc[2];g.style.cssText='background:'+gc[1]+';color:'+gc[0]+';border:1px solid '+gc[0]+'44;border-radius:11px;padding:2px 11px;font-size:11px;font-weight:600';
+  setTimeout(function(){document.getElementById('sp-bar').style.width=soh+'%';},50);
+  document.getElementById('sp-deg').textContent=(100-cn/c0*100).toFixed(1)+'%';document.getElementById('sp-ri').textContent=(((rn-r0)/r0)*100).toFixed(1)+'%';document.getElementById('sp-lf').textContent=Math.max(0,((soh-70)/30*8)).toFixed(1)+'년';
+  document.getElementById('cr-soh').style.display='block';
+}
+function cPW(){
+  var V=+document.getElementById('cp-v').value||400,I=+document.getElementById('cp-i').value||200,R=+document.getElementById('cp-r').value||5,soc=+document.getElementById('cp-s').value||60;
+  var sf=soc<20?.5:soc<50?.8:1,ls=Math.round(I*I*(R/1000));
+  document.getElementById('cp-pk').textContent=Math.round(V*I*sf/1000)+' kW';document.getElementById('cp-ch').textContent=Math.round(V*I*.9/1000)+' kW';document.getElementById('cp-ls').textContent=ls+' W';document.getElementById('cp-ef').textContent=Math.round((1-ls/(V*I))*1000)/10+'%';
+  document.getElementById('cr-pw').style.display='block';
+  var ctx=document.getElementById('cChPW').getContext('2d');if(_pc)_pc.destroy();
+  var sx=[0,10,20,30,40,50,60,70,80,90,100];
+  _pc=new Chart(ctx,{type:'line',data:{labels:sx.map(function(s){return s+'%';}),datasets:[{data:sx.map(function(s){return Math.round(V*I*(s<20?.5:s<50?.8:1)/1000);}),borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#10b981'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'rgba(255,255,255,.3)',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#10b981',font:{size:9},callback:function(v){return v+'kW';}},grid:{color:'rgba(16,185,129,.06)'}}}}});
+}
+
+// 테마
+function toggleTheme(){var b=document.body,btn=document.getElementById('themeBtn');b.classList.toggle('light');btn.textContent=b.classList.contains('light')?'🌑':'🌙';}
+
+// 검색
+function toggleSearch(){var inp=document.getElementById('si');inp.classList.toggle('open');if(inp.classList.contains('open'))inp.focus();else{inp.value='';document.getElementById('sd').classList.remove('open');}}
+function doSearch(q){
+  var sd=document.getElementById('sd');
+  if(!q.trim()){sd.classList.remove('open');return;}
+  var hits=ALL_CHS.filter(function(ch){return ch.t.includes(q)||ch.tag.toLowerCase().includes(q.toLowerCase())||ch.n.includes(q)||ch.i.includes(q);});
+  if(!hits.length){sd.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--w30)">결과 없음</div>';sd.classList.add('open');return;}
+  sd.innerHTML=hits.slice(0,5).map(function(ch){return'<div class="sd-item" onclick="searchGo(\''+ch.n+'\')"><div class="sd-num">'+ch.n+'</div><div><div class="sd-t">'+ch.t+'</div><div class="sd-s">'+ch.i+'</div></div></div>';}).join('');
+  sd.classList.add('open');
+}
+function searchGo(n){document.getElementById('si').value='';document.getElementById('sd').classList.remove('open');goSec('sec-ch');setTimeout(function(){openExp(n);},500);}
+document.addEventListener('click',function(e){if(!document.getElementById('searchBox').contains(e.target))document.getElementById('sd').classList.remove('open');});
+
+// 유틸
+function goSec(id){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});}
+window.addEventListener('scroll',function(){document.getElementById('mainNav').classList.toggle('solid',window.scrollY>60);});
+var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('show');});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+
+// 3D 배터리 셀
+(function(){
+  var grid=document.getElementById('cells');
+  var total=24;
+  for(var i=0;i<total;i++){var c=document.createElement('div');c.className='cell'+(i<18?' on':'');grid.appendChild(c);}
+  setInterval(function(){
+    var soc=60+Math.round(Math.sin(Date.now()*.00025)*18);
+    var n=Math.round(soc/100*total);
+    var cs=grid.querySelectorAll('.cell');
+    cs.forEach(function(c,i){c.className='cell'+(i<n?' on':(i===n?' pulse':''));});
+    document.getElementById('hSoc').textContent=soc+'%';
+    document.getElementById('hTemp').textContent=(27+Math.round(Math.sin(Date.now()*.0002)*3.5)).toFixed(1)+'°C';
+    document.getElementById('hVolt').textContent=(380+Math.round(Math.sin(Date.now()*.00022)*22))+'V';
+  },2200);
+})();
+
+// 마우스 패럴랙스
+document.addEventListener('mousemove',function(e){
+  var bat=document.getElementById('bat3d');if(!bat)return;
+  var rx=(e.clientY/window.innerHeight-.5)*8,ry=(e.clientX/window.innerWidth-.5)*-14;
+  bat.style.transform='translate(-50%,-50%) rotateX('+(22+rx)+'deg) rotateY('+(-28+ry)+'deg)';
+});
+
+// SOC 파형
+(function(){
+  var cv=document.getElementById('waveCV');if(!cv)return;
+  var ctx=cv.getContext('2d');
+  function resize(){cv.width=cv.offsetWidth||window.innerWidth;cv.height=cv.offsetHeight||100;}
+  resize();window.addEventListener('resize',resize);
+  function draw(){
+    var W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);
+    var t=Date.now()*.0008;
+    [[.4,.3,1],[.6,.5,.7],[.8,.7,.5]].forEach(function(l,i){
+      ctx.beginPath();
+      for(var x=0;x<=W;x+=3){var y=H*(1-l[0])+Math.sin(x*.012+t+i*1.2)*H*l[1]+Math.sin(x*.006+t*.7+i)*H*.1;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      var g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,'transparent');g.addColorStop(.2,'rgba(59,130,246,'+l[2]+')');g.addColorStop(.8,'rgba(6,182,212,'+l[2]+')');g.addColorStop(1,'transparent');
+      ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.stroke();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── 캐시 시스템 (24h)
+var CACHE_TTL = 86400000; // 24h ms
+
+function loadCache(key) {
+  try { var r=localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+function saveCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({data:data, ts:Date.now()})); } catch(e) {}
+}
+function isFresh(cache) {
+  return cache && (Date.now() - cache.ts) < CACHE_TTL;
+}
+function cacheTimeLeft(cache) {
+  if (!cache) return null;
+  var left = CACHE_TTL - (Date.now() - cache.ts);
+  if (left <= 0) return null;
+  var h = Math.floor(left/3600000), m = Math.floor((left%3600000)/60000);
+  return h + 'h ' + m + 'm';
+}
+
+// ── 논문 자동 로드 (캐시 포함)
+async function fetchSP() {
+  var ch = ALL_CHS[Math.floor(Math.random()*ALL_CHS.length)];
+  var btn=document.getElementById('sp-btn'), area=document.getElementById('sp-area'), tp=document.getElementById('sp-topic');
+
+  var cache = loadCache('bms_papers');
+  if (isFresh(cache)) {
+    if(tp) tp.textContent = cache.data.topic;
+    area.innerHTML = '<div class="g2">' + cache.data.items.map(pCard).join('') + '</div>';
+    updateSubBadge('sp-badge-info', cacheTimeLeft(cache));
+    return;
+  }
+
+  if(tp) tp.textContent = 'Ch.'+ch.n+' — '+ch.t;
+  if(btn){btn.disabled=true;btn.classList.add('spin');btn.innerHTML=IR+' 검색 중...';}
+  area.innerHTML = '<div class="ph">'+ch.t+' 검색 중...</div>';
+  try {
+    var its = await crSearch(ch.en, 5);
+    if(!its.length) throw new Error('결과 없음');
+    var parsed = its.map(parseCR);
+    saveCache('bms_papers', {topic:'Ch.'+ch.n+' — '+ch.t, items:parsed});
+    area.innerHTML = '<div class="g2">' + parsed.map(pCard).join('') + '</div>';
+    updateSubBadge('sp-badge-info', cacheTimeLeft(loadCache('bms_papers')));
+  } catch(e) { area.innerHTML = '<div class="err">⚠ '+e.message+'</div>'; }
+  if(btn){btn.disabled=false;btn.classList.remove('spin');btn.innerHTML=IR+' 논문 갱신';}
+}
+
+// ── 참고문헌 자동 로드 (캐시 포함)
+async function fetchRefs() {
+  var btn=document.getElementById('rf-btn'), area=document.getElementById('rf-area');
+
+  var cache = loadCache('bms_refs');
+  if (isFresh(cache)) {
+    area.innerHTML = renderRefs(cache.data);
+    updateSubBadge('rf-badge-info', cacheTimeLeft(cache));
+    return;
+  }
+
+  if(btn){btn.disabled=true;btn.classList.add('spin');btn.innerHTML=IR+' 검색 중...';}
+  area.innerHTML = '<div class="ph">CrossRef 수집 중...</div>';
+  try {
+    var all = [];
+    for(var i=0;i<RQ.length;i++){
+      if(i>0) await delay(300);
+      try { var its=await crSearch(RQ[i],1); if(its[0]) all.push(parseCR(its[0],all.length)); } catch(e){}
+    }
+    if(!all.length) throw new Error('결과 없음');
+    saveCache('bms_refs', all);
+    area.innerHTML = renderRefs(all);
+    updateSubBadge('rf-badge-info', cacheTimeLeft(loadCache('bms_refs')));
+  } catch(e) { area.innerHTML = '<div class="err">⚠ '+e.message+'</div>'; }
+  if(btn){btn.disabled=false;btn.classList.remove('spin');btn.innerHTML=IR+' 갱신';}
+}
+
+function renderRefs(all) {
+  return '<div class="rc-list">'+all.map(function(r){
+    return '<div class="rc"><div class="rcn">['+r.num+']</div><div><div class="rct">'+r.title+'</div><div class="rcm"><span><span class="rcml">저자 </span>'+r.authors+'</span><span><span class="rcml">저널 </span>'+r.journal+'</span><span><span class="rcml">연도 </span>'+r.year+'</span></div>'+(r.doi?'<a class="rc-link" href="https://doi.org/'+r.doi+'" target="_blank" rel="noopener">'+IS+' DOI</a>':'')+'</div></div>';
+  }).join('')+'</div><div class="notice">✓ CrossRef API · 24h 자동 캐시</div>';
+}
+
+function updateSubBadge(id, timeLeft) {
+  var el = document.getElementById(id);
+  if(el && timeLeft) el.textContent = '캐시 ' + timeLeft + ' 남음';
+}
+
+// ── 뉴스 캐시 UI 업데이트
+function updateCacheUI(cache) {
+  var dot=document.getElementById('sn-dot'), txt=document.getElementById('sn-cache-txt');
+  if(!cache){if(dot)dot.className='cdot';if(txt)txt.textContent='캐시 없음';return;}
+  var left=CACHE_TTL-(Date.now()-cache.ts),fresh=left>0,hrs=Math.floor(left/3600000),mins=Math.floor((left%3600000)/60000);
+  if(dot)dot.className='cdot'+(fresh?' fresh':'');
+  if(txt)txt.textContent=fresh?'캐시 유효 — '+hrs+'h '+mins+'m':'캐시 만료';
+  var ch=ALL_CHS.find(function(c){return c.n===cache.chNum;});
+  var tp=document.getElementById('sn-topic');if(ch&&tp)tp.textContent='Ch.'+ch.n+' — '+ch.t;
+}
+function getCache(){return loadCache('bms_news_c');}
+function setCache(n,items){saveCache('bms_news_c',{chNum:n,items:items,ts:Date.now()-CACHE_TTL+CACHE_TTL});}
+
+// ── 강제 갱신 (캐시 무시)
+async function fetchSNForce() {
+  localStorage.removeItem('bms_news_c');
+  await fetchSN(true);
+}
+async function fetchSPForce() {
+  localStorage.removeItem('bms_papers');
+  await fetchSP();
+}
+async function fetchRefsForce() {
+  localStorage.removeItem('bms_refs');
+  await fetchRefs();
+}
+
+// ── 초기화: 페이지 로드 시 전부 자동 로드
+
+// ══════════════════════════════════════
+// BMS 시뮬레이터
+// ══════════════════════════════════════
+var SIM = {
+  mode: 'discharge',   // discharge | charge | cycle
+  running: false,
+  speed: 1,
+  t: 0,                // 경과 시간 (초)
+  dt: 1,               // 스텝 (초)
+  fps: 10,             // 업데이트 주기
+  maxPts: 300,         // 슬라이딩 윈도우
+  cycleNum: 1,
+  cycleDir: 'discharge',
+  raf: null,
+  lastTick: 0,
+
+  // 파라미터
+  cap: 100,
+  soc0: 80,
+  curr: 30,
+  ambTemp: 25,
+
+  // 상태
+  soc: 80,
+  volt: 0,
+  curr_now: 0,
+  temp: 25,
+  soh: 100,
+  internalR: 0.005,   // 내부저항 (Ω)
+
+  // 데이터 버퍼
+  tArr: [], socArr: [], vArr: [], iArr: [], tpArr: [],
+};
+
+// OCV-SOC 룩업 (리튬이온)
+var OCV_TABLE = [
+  [0,   3.00], [5,   3.20], [10,  3.40], [20,  3.55],
+  [30,  3.65], [40,  3.72], [50,  3.78], [60,  3.83],
+  [70,  3.88], [80,  3.93], [90,  4.00], [100, 4.20]
+];
+function getOCV(soc) {
+  for (var i = 0; i < OCV_TABLE.length - 1; i++) {
+    var s0 = OCV_TABLE[i][0], s1 = OCV_TABLE[i+1][0];
+    if (soc >= s0 && soc <= s1) {
+      var ratio = (soc - s0) / (s1 - s0);
+      return OCV_TABLE[i][1] + ratio * (OCV_TABLE[i+1][1] - OCV_TABLE[i][1]);
+    }
+  }
+  return soc >= 100 ? 4.20 : 3.00;
+}
+
+// 온도 모델
+function calcTemp(soc, curr, ambTemp, dt) {
+  var heatGen = curr * curr * SIM.internalR;          // 줄 열
+  var cooling = (SIM.temp - ambTemp) * 0.015;         // 냉각
+  var dT = (heatGen * 8 - cooling) * dt / 3600;
+  return Math.max(ambTemp, SIM.temp + dT);
+}
+
+// 시뮬레이션 스텝
+function simStep() {
+  var dt = SIM.dt * SIM.speed;
+  SIM.t += SIM.dt;
+
+  var I = 0;
+  var mode = SIM.mode === 'cycle' ? SIM.cycleDir : SIM.mode;
+
+  if (mode === 'discharge') {
+    I = -SIM.curr;
+    if (SIM.soc <= 2) {
+      if (SIM.mode === 'cycle') {
+        SIM.cycleDir = 'charge';
+        SIM.cycleNum++;
+        SIM.soh = Math.max(70, SIM.soh - 0.05);
+        SIM.internalR *= 1.0003;
+      } else {
+        simPause();
+        return;
+      }
+    }
+  } else {
+    // 충전 CC-CV
+    var cv_threshold = 95;
+    if (SIM.soc < cv_threshold) {
+      I = SIM.curr;           // CC 구간
+    } else {
+      // CV 구간: 전류 점감
+      I = SIM.curr * (1 - (SIM.soc - cv_threshold) / (100 - cv_threshold)) * 0.8;
+    }
+    if (SIM.soc >= 100) {
+      if (SIM.mode === 'cycle') {
+        SIM.cycleDir = 'discharge';
+        SIM.cycleNum++;
+        SIM.soh = Math.max(70, SIM.soh - 0.05);
+        SIM.internalR *= 1.0003;
+      } else {
+        simPause();
+        return;
+      }
+    }
+  }
+
+  // SOC 업데이트 (쿨롱 카운팅)
+  var dSoc = (I / (SIM.cap * 3600)) * SIM.dt * SIM.speed * 100;
+  SIM.soc = Math.max(0, Math.min(100, SIM.soc + dSoc));
+
+  // 전압 (OCV + 내부저항 강하)
+  SIM.volt = getOCV(SIM.soc) + I * SIM.internalR;
+  SIM.volt = Math.max(2.8, Math.min(4.25, SIM.volt));
+
+  // 온도
+  SIM.temp = calcTemp(SIM.soc, Math.abs(I), SIM.ambTemp, SIM.dt * SIM.speed);
+  SIM.curr_now = I;
+
+  // 버퍼 추가
+  SIM.tArr.push(SIM.t);
+  SIM.socArr.push(+SIM.soc.toFixed(2));
+  SIM.vArr.push(+SIM.volt.toFixed(3));
+  SIM.iArr.push(+I.toFixed(2));
+  SIM.tpArr.push(+SIM.temp.toFixed(2));
+
+  // 슬라이딩 윈도우
+  if (SIM.tArr.length > SIM.maxPts) {
+    SIM.tArr.shift(); SIM.socArr.shift(); SIM.vArr.shift();
+    SIM.iArr.shift(); SIM.tpArr.shift();
+  }
+}
+
+// 시간 포맷
+function fmtTime(s) {
+  var m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ':' + (sec<10?'0':'') + sec;
+}
+
+// UI 업데이트
+function simUpdateUI() {
+  document.getElementById('ss-soc').textContent = SIM.soc.toFixed(1) + '%';
+  document.getElementById('ss-v').textContent = SIM.volt.toFixed(3) + ' V';
+  document.getElementById('ss-i').textContent = SIM.curr_now.toFixed(1) + ' A';
+  document.getElementById('ss-t').textContent = SIM.temp.toFixed(1) + ' °C';
+  document.getElementById('ss-soh').textContent = SIM.soh.toFixed(1) + '%';
+  document.getElementById('sim-elapsed').textContent = fmtTime(SIM.t);
+  var badge = document.getElementById('sim-cycle-badge');
+  if (SIM.mode === 'cycle') {
+    badge.style.display = 'inline-flex';
+    document.getElementById('sim-cycle-num').textContent = SIM.cycleNum;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// 그래프 Canvas 직접 그리기 (Chart.js 없이)
+var GRAPH_COLORS = {
+  soc: '#60a5fa', volt: '#06b6d4', curr: '#10b981', temp: '#f59e0b'
+};
+function drawGraph(canvasId, data, color, minY, maxY, label) {
+  var cv = document.getElementById(canvasId);
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.offsetWidth || 200, H = cv.offsetHeight || 100;
+  cv.width = W; cv.height = H;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 배경
+  ctx.fillStyle = 'rgba(5,6,15,0)';
+  ctx.fillRect(0, 0, W, H);
+
+  // 그리드 라인 (3개)
+  ctx.strokeStyle = 'rgba(255,255,255,.06)';
+  ctx.lineWidth = 1;
+  for (var g = 0; g < 3; g++) {
+    var gy = H * (g+1) / 4;
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  if (data.length < 2) return;
+
+  // 그라디언트 면
+  var gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, color + '28');
+  gradient.addColorStop(1, color + '04');
+
+  var range = maxY - minY || 1;
+  function toY(v) { return H - ((v - minY) / range) * (H - 16) - 8; }
+  function toX(i) { return (i / (SIM.maxPts - 1)) * W; }
+
+  // 면 채우기
+  ctx.beginPath();
+  ctx.moveTo(toX(0), H);
+  for (var i = 0; i < data.length; i++) {
+    var x = (i / SIM.maxPts) * W;
+    ctx.lineTo(x, toY(data[i]));
+  }
+  ctx.lineTo((data.length-1)/SIM.maxPts*W, H);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // 선
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  for (var i = 0; i < data.length; i++) {
+    var x = (i / SIM.maxPts) * W;
+    i === 0 ? ctx.moveTo(x, toY(data[i])) : ctx.lineTo(x, toY(data[i]));
+  }
+  ctx.stroke();
+
+  // 현재값 점
+  if (data.length > 0) {
+    var lx = (data.length-1)/SIM.maxPts*W;
+    var ly = toY(data[data.length-1]);
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(lx, ly, 7, 0, Math.PI*2);
+    ctx.fillStyle = color + '30';
+    ctx.fill();
+  }
+}
+
+function simDrawAll() {
+  drawGraph('gSOC', SIM.socArr, GRAPH_COLORS.soc, 0, 100);
+  var vmin = SIM.mode==='charge' ? 3.5 : 2.8;
+  drawGraph('gV', SIM.vArr, GRAPH_COLORS.volt, vmin, 4.3);
+  var imax = SIM.curr * 1.1;
+  drawGraph('gI', SIM.iArr, GRAPH_COLORS.curr, -imax, imax);
+  drawGraph('gT', SIM.tpArr, GRAPH_COLORS.temp, SIM.ambTemp - 2, SIM.ambTemp + 30);
+}
+
+// 메인 루프 (10fps)
+function simLoop(ts) {
+  if (!SIM.running) return;
+  if (ts - SIM.lastTick >= 1000 / SIM.fps) {
+    SIM.lastTick = ts;
+    simStep();
+    simUpdateUI();
+    simDrawAll();
+  }
+  SIM.raf = requestAnimationFrame(simLoop);
+}
+
+// 컨트롤 함수
+function simPlay() {
+  SIM.running = true;
+  document.getElementById('simPlayBtn').style.display = 'none';
+  document.getElementById('simPauseBtn').style.display = 'flex';
+  SIM.raf = requestAnimationFrame(simLoop);
+}
+function simPause() {
+  SIM.running = false;
+  document.getElementById('simPlayBtn').style.display = 'flex';
+  document.getElementById('simPauseBtn').style.display = 'none';
+  if (SIM.raf) cancelAnimationFrame(SIM.raf);
+}
+function simReset() {
+  simPause();
+  SIM.t = 0; SIM.cycleNum = 1; SIM.cycleDir = SIM.mode === 'charge' ? 'charge' : 'discharge';
+  SIM.soc = SIM.soc0; SIM.temp = SIM.ambTemp;
+  SIM.volt = getOCV(SIM.soc); SIM.curr_now = 0;
+  SIM.soh = 100; SIM.internalR = 0.005;
+  SIM.tArr=[]; SIM.socArr=[]; SIM.vArr=[]; SIM.iArr=[]; SIM.tpArr=[];
+  simUpdateUI(); simDrawAll();
+  document.getElementById('ss-soc').textContent='—';
+  document.getElementById('ss-v').textContent='—';
+  document.getElementById('ss-i').textContent='—';
+  document.getElementById('ss-t').textContent='—';
+  document.getElementById('ss-soh').textContent='—';
+  document.getElementById('sim-elapsed').textContent='0:00';
+}
+function setSpeed(s, btn) {
+  SIM.speed = s;
+  document.querySelectorAll('.speed-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+}
+function setSimMode(mode, btn) {
+  SIM.mode = mode;
+  document.querySelectorAll('.sim-mode-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  simReset();
+}
+function updateSlider(key, val) {
+  val = +val;
+  if (key === 'cap')  { SIM.cap = val;      document.getElementById('sv-cap').textContent = val + ' Ah'; }
+  if (key === 'soc0') { SIM.soc0 = val;     document.getElementById('sv-soc0').textContent = val + ' %'; }
+  if (key === 'curr') { SIM.curr = val;     document.getElementById('sv-curr').textContent = val + ' A'; }
+  if (key === 'temp') { SIM.ambTemp = val;  document.getElementById('sv-temp').textContent = val + ' °C'; }
+  simReset();
+}
+
+// 초기 그래프 그리기 (빈 상태)
+window.addEventListener('load', function() {
+  setTimeout(simDrawAll, 500);
+});
+
+buildWidgets();
+var _c = getCache(); updateCacheUI(_c);
+
+// 순서대로 로드 (API 과부하 방지)
+fetchSN(false);
+setTimeout(function(){ fetchSP(); }, 1200);
+setTimeout(function(){ fetchRefs(); }, 3000);
+</script>
+</body>
+</html>
